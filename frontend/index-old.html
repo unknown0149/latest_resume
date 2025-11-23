@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Optimizer - Transform Your Career</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="nav">
+                <div class="logo">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="40" height="40" rx="8" fill="url(#logo-gradient)"/>
+                        <path d="M12 15L20 23L28 15" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                        <defs>
+                            <linearGradient id="logo-gradient" x1="0" y1="0" x2="40" y2="40">
+                                <stop offset="0%" stop-color="#60a5fa"/>
+                                <stop offset="50%" stop-color="#86efac"/>
+                                <stop offset="100%" stop-color="#f9a8d4"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span class="logo-text">Resume Genie</span>
+                </div>
+                <nav class="nav-links">
+                    <a href="#features">Features</a>
+                    <a href="#how-it-works">How It Works</a>
+                    <a href="#about">About Us</a>
+                    <a href="job-recommendation.html" class="job-rec-link">
+                        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        
+                        </svg>
+                        Job Recommendation
+                    </a>
+                </nav>
+                <div class="nav-actions">
+                    <button class="btn-secondary" id="loginBtn">Login</button>
+                    <button class="btn-primary" id="dashboardBtn">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M10 10C12.7614 10 15 7.76142 15 5C15 2.23858 12.7614 0 10 0C7.23858 0 5 2.23858 5 5C5 7.76142 7.23858 10 10 10Z" fill="currentColor"/>
+                            <path d="M10 12C4.477 12 0 14.477 0 17.5C0 18.328 0.672 19 1.5 19H18.5C19.328 19 20 18.328 20 17.5C20 14.477 15.523 12 10 12Z" fill="currentColor"/>
+                        </svg>
+                        My Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <div class="badge">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 0L9.79611 5.52786H15.6085L10.9062 8.94427L12.7023 14.4721L8 11.0557L3.29772 14.4721L5.09383 8.94427L0.391548 5.52786H6.20389L8 0Z" fill="currentColor"/>
+                        </svg>
+                        Build Your Career Success with Resume Genie
+                    </div>
+                    <h1 class="hero-title">
+                        Transform Your Resume Into a 
+                        <span class="gradient-text">Career Magnet</span>
+                    </h1>
+                    <p class="hero-description">
+                        Our advanced AI analyzes your resume against industry standards and job requirements, 
+                        providing actionable insights to land your dream job. Get ATS-optimized, professionally 
+                        formatted resumes in minutes.
+                    </p>
+                    <div class="hero-stats">
+                        <div class="stat">
+                            <div class="stat-number">50K+</div>
+                            <div class="stat-label">Resumes Optimized</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number">95%</div>
+                            <div class="stat-label">Success Rate</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number">4.9★</div>
+                            <div class="stat-label">User Rating</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="visual-card">
+                        <svg width="300" height="350" viewBox="0 0 300 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Document -->
+                            <rect x="50" y="30" width="200" height="290" rx="10" fill="white" stroke="url(#card-gradient)" stroke-width="2"/>
+                            
+                            <!-- Header Lines -->
+                            <rect x="70" y="50" width="80" height="8" rx="4" fill="#60a5fa" opacity="0.3"/>
+                            <rect x="70" y="65" width="120" height="6" rx="3" fill="#60a5fa" opacity="0.2"/>
+                            
+                            <!-- Profile Circle -->
+                            <circle cx="100" cy="110" r="20" fill="url(#profile-gradient)"/>
+                            
+                            <!-- Content Lines -->
+                            <rect x="70" y="150" width="160" height="6" rx="3" fill="#bfdbfe"/>
+                            <rect x="70" y="165" width="140" height="6" rx="3" fill="#bfdbfe"/>
+                            <rect x="70" y="180" width="150" height="6" rx="3" fill="#bfdbfe"/>
+                            
+                            <rect x="70" y="210" width="160" height="6" rx="3" fill="#bfdbfe"/>
+                            <rect x="70" y="225" width="120" height="6" rx="3" fill="#bfdbfe"/>
+                            <rect x="70" y="240" width="145" height="6" rx="3" fill="#bfdbfe"/>
+                            
+                            <rect x="70" y="270" width="100" height="6" rx="3" fill="#bfdbfe"/>
+                            <rect x="70" y="285" width="130" height="6" rx="3" fill="#bfdbfe"/>
+                            
+                            <!-- AI Sparkles -->
+                            <circle cx="240" cy="60" r="3" fill="#fcd34d">
+                                <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+                            <circle cx="260" cy="80" r="2" fill="#fcd34d">
+                                <animate attributeName="opacity" values="1;0.3;1" dur="2.5s" repeatCount="indefinite"/>
+                            </circle>
+                            <circle cx="250" cy="100" r="2.5" fill="#fcd34d">
+                                <animate attributeName="opacity" values="0.5;1;0.5" dur="1.8s" repeatCount="indefinite"/>
+                            </circle>
+                            
+                            <!-- Checkmark Badge -->
+                            <circle cx="220" cy="290" r="18" fill="#6ee7b7"/>
+                            <path d="M213 290L218 295L227 285" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                            
+                            <defs>
+                                <linearGradient id="card-gradient" x1="50" y1="30" x2="250" y2="320">
+                                    <stop offset="0%" stop-color="#60a5fa"/>
+                                    <stop offset="50%" stop-color="#86efac"/>
+                                    <stop offset="100%" stop-color="#f9a8d4"/>
+                                </linearGradient>
+                                <linearGradient id="profile-gradient" x1="80" y1="90" x2="120" y2="130">
+                                    <stop offset="0%" stop-color="#60a5fa"/>
+                                    <stop offset="100%" stop-color="#86efac"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-background"></div>
+    </section>
+
+    <!-- Upload Section -->
+    <section class="upload-section" id="upload">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Upload Your Resume</h2>
+                <p class="section-description">Drop your resume and let AI work its magic</p>
+            </div>
+            
+            <div class="upload-container">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <div class="upload-icon">
+                            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="40" cy="40" r="38" stroke="url(#upload-gradient)" stroke-width="2" stroke-dasharray="4 4"/>
+                                <path d="M40 20V50M40 20L30 30M40 20L50 30" stroke="url(#upload-gradient)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M25 55H55" stroke="url(#upload-gradient)" stroke-width="3" stroke-linecap="round"/>
+                                <defs>
+                                    <linearGradient id="upload-gradient" x1="0" y1="0" x2="80" y2="80">
+                                        <stop offset="0%" stop-color="#60a5fa"/>
+                                        <stop offset="50%" stop-color="#86efac"/>
+                                        <stop offset="100%" stop-color="#f9a8d4"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <h3 class="upload-title">Drag & Drop Your Resume</h3>
+                        <p class="upload-text">or click to browse</p>
+                        <p class="upload-formats">PDF, DOC, DOCX (Max 10MB)</p>
+                        <input type="file" id="fileInput" accept=".pdf,.doc,.docx" hidden>
+                        <button class="btn-upload" id="browseBtn">Browse Files</button>
+                    </div>
+                    <div class="upload-preview" id="uploadPreview" style="display: none;">
+                        <div class="file-info">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="48" height="48" rx="8" fill="#dbeafe"/>
+                                <path d="M18 14H24L30 20V34H18V14Z" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M24 14V20H30" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <div class="file-details">
+                                <div class="file-name" id="fileName">Resume.pdf</div>
+                                <div class="file-size" id="fileSize">2.4 MB</div>
+                            </div>
+                            <button class="btn-remove" id="removeBtn">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <button class="btn-analyze" id="analyzeBtn">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M10 2L12.5 7L18 8L14 12L15 18L10 15L5 18L6 12L2 8L7.5 7L10 2Z" fill="currentColor"/>
+                            </svg>
+                            Analyze with AI
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="upload-features">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#6ee7b7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div class="feature-text">
+                            <div class="feature-title">ATS Optimization</div>
+                            <div class="feature-desc">Pass 95% of Applicant Tracking Systems</div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M13 10V3L4 14H11V21L20 10H13Z" stroke="#fcd34d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div class="feature-text">
+                            <div class="feature-title">Instant Analysis</div>
+                            <div class="feature-desc">Get results in under 30 seconds</div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="#60a5fa" stroke-width="2"/>
+                                <path d="M12 5V3M12 21V19M19 12H21M3 12H5M17.6569 6.34315L19.0711 4.92893M4.92893 19.0711L6.34315 17.6569M17.6569 17.6569L19.0711 19.0711M4.92893 4.92893L6.34315 6.34315" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <div class="feature-text">
+                            <div class="feature-title">Smart Suggestions</div>
+                            <div class="feature-desc">AI-powered improvement recommendations</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section" id="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Why Choose Resume Genie</h2>
+                <p class="section-description">Powerful features to make your resume stand out</p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-card-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="32" height="32" rx="8" fill="#dbeafe"/>
+                            <path d="M16 8V16L20 20" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3>Real-Time Scoring</h3>
+                    <p>Get instant feedback with detailed scoring across multiple criteria</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="32" height="32" rx="8" fill="#fef9c3"/>
+                            <path d="M16 10L18 14L22 15L19 18L20 22L16 20L12 22L13 18L10 15L14 14L16 10Z" stroke="#fcd34d" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>Keyword Optimization</h3>
+                    <p>Automatically identify and suggest industry-specific keywords</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="32" height="32" rx="8" fill="#d1fae5"/>
+                            <path d="M11 16L14 19L21 12" stroke="#6ee7b7" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3>Format Checker</h3>
+                    <p>Ensure your resume meets professional formatting standards</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="32" height="32" rx="8" fill="#fce7f3"/>
+                            <circle cx="16" cy="12" r="3" stroke="#f9a8d4" stroke-width="2"/>
+                            <path d="M22 24C22 20.6863 19.3137 18 16 18C12.6863 18 10 20.6863 10 24" stroke="#f9a8d4" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>Personalized Tips</h3>
+                    <p>Receive tailored suggestions based on your career goals</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="32" height="32" rx="8" fill="#e9d5ff"/>
+                            <path d="M12 16L16 20L26 10" stroke="#c084fc" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M16 20L12 16L6 22" stroke="#c084fc" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3>Multiple Formats</h3>
+                    <p>Export your optimized resume in PDF, Word, or plain text</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="32" height="32" rx="8" fill="#bfdbfe"/>
+                            <path d="M16 11V21M11 16H21" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3>Version Control</h3>
+                    <p>Save and compare multiple versions of your resume</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works-section" id="how-it-works">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">How It Works</h2>
+                <p class="section-description">Transform your resume in 3 simple steps</p>
+            </div>
+            
+            <div class="how-it-works-grid">
+                <div class="how-it-works-item">
+                    <div class="how-it-works-number">01</div>
+                    <div class="how-it-works-image">
+                        <svg width="280" height="200" viewBox="0 0 280 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="40" y="30" width="200" height="140" rx="12" fill="white" stroke="#60a5fa" stroke-width="2"/>
+                            <path d="M140 70L140 120M115 95L140 70L165 95" stroke="#60a5fa" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="60" y="130" width="160" height="8" rx="4" fill="#bfdbfe"/>
+                            <circle cx="100" cy="165" r="3" fill="#6ee7b7"/>
+                            <circle cx="120" cy="165" r="3" fill="#6ee7b7"/>
+                            <circle cx="140" cy="165" r="3" fill="#6ee7b7"/>
+                        </svg>
+                    </div>
+                    <div class="how-it-works-content">
+                        <h3>Upload Your Resume</h3>
+                        <p>Simply drag and drop your resume in PDF, DOC, or DOCX format. Our system accepts files up to 10MB and processes them securely. Your data is encrypted and protected throughout the entire process.</p>
+                    </div>
+                </div>
+                
+                <div class="how-it-works-item">
+                    <div class="how-it-works-number">02</div>
+                    <div class="how-it-works-image">
+                        <svg width="280" height="200" viewBox="0 0 280 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="40" y="30" width="200" height="140" rx="12" fill="white" stroke="#86efac" stroke-width="2"/>
+                            <circle cx="140" cy="80" r="25" fill="#dcfce7"/>
+                            <path d="M128 80L135 87L152 70" stroke="#6ee7b7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="60" y="115" width="80" height="6" rx="3" fill="#fde68a"/>
+                            <rect x="60" y="130" width="100" height="6" rx="3" fill="#6ee7b7"/>
+                            <rect x="60" y="145" width="60" height="6" rx="3" fill="#fbbf24"/>
+                            <circle cx="220" cy="60" r="2" fill="#fcd34d">
+                                <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+                            <circle cx="210" cy="70" r="2" fill="#fcd34d">
+                                <animate attributeName="opacity" values="1;0.3;1" dur="2.5s" repeatCount="indefinite"/>
+                            </circle>
+                        </svg>
+                    </div>
+                    <div class="how-it-works-content">
+                        <h3>AI Analysis & Scoring</h3>
+                        <p>Our advanced AI analyzes your resume against industry standards, ATS requirements, and best practices. Get instant feedback on formatting, keywords, content quality, and overall effectiveness with a detailed score breakdown.</p>
+                    </div>
+                </div>
+                
+                <div class="how-it-works-item">
+                    <div class="how-it-works-number">03</div>
+                    <div class="how-it-works-image">
+                        <svg width="280" height="200" viewBox="0 0 280 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="30" y="20" width="100" height="140" rx="10" fill="#fce7f3" stroke="#f9a8d4" stroke-width="2"/>
+                            <rect x="90" y="40" width="100" height="140" rx="10" fill="#fef9c3" stroke="#fcd34d" stroke-width="2"/>
+                            <rect x="150" y="30" width="100" height="140" rx="10" fill="#d1fae5" stroke="#6ee7b7" stroke-width="2"/>
+                            <circle cx="200" cy="50" r="15" fill="#6ee7b7"/>
+                            <path d="M193 50L198 55L207 45" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="165" y="80" width="70" height="4" rx="2" fill="#6ee7b7" opacity="0.4"/>
+                            <rect x="165" y="90" width="60" height="4" rx="2" fill="#6ee7b7" opacity="0.4"/>
+                            <rect x="165" y="100" width="65" height="4" rx="2" fill="#6ee7b7" opacity="0.4"/>
+                        </svg>
+                    </div>
+                    <div class="how-it-works-content">
+                        <h3>Download & Apply</h3>
+                        <p>Review actionable suggestions to improve your resume, implement recommended changes, and download your optimized resume in multiple formats. Track different versions and see improvement over time as you refine your application.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="how-it-works-cta">
+                <h3>Ready to optimize your resume?</h3>
+                <p>Join thousands of job seekers who have successfully landed their dream jobs</p>
+                <button class="btn-primary" onclick="document.getElementById('upload').scrollIntoView({behavior: 'smooth', block: 'start'})">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 2L12.5 7L18 8L14 12L15 18L10 15L5 18L6 12L2 8L7.5 7L10 2Z" fill="currentColor"/>
+                    </svg>
+                    Get Started Now
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Us Section -->
+    <section class="about-section" id="about">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">About Resume Genie </h2>
+                <p class="section-description">Empowering job seekers with cutting-edge AI technology</p>
+            </div>
+            
+            <div class="about-content">
+                <div class="about-story">
+                    <div class="about-image">
+                        <svg width="500" height="350" viewBox="0 0 500 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="500" height="350" rx="20" fill="url(#about-bg)"/>
+                            <circle cx="250" cy="175" r="80" fill="white" opacity="0.1"/>
+                            <circle cx="250" cy="175" r="60" fill="white" opacity="0.15"/>
+                            <circle cx="250" cy="175" r="40" fill="white" opacity="0.2"/>
+                            <path d="M200 150L230 180L300 110" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="100" cy="80" r="30" fill="white" opacity="0.1"/>
+                            <circle cx="400" cy="280" r="40" fill="white" opacity="0.1"/>
+                            <circle cx="450" cy="100" r="25" fill="white" opacity="0.15"/>
+                            <defs>
+                                <linearGradient id="about-bg" x1="0" y1="0" x2="500" y2="350">
+                                    <stop offset="0%" stop-color="#60a5fa"/>
+                                    <stop offset="50%" stop-color="#86efac"/>
+                                    <stop offset="100%" stop-color="#f9a8d4"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div class="about-text">
+                        <h3>Our Mission</h3>
+                        <p>At Resume Genie, we believe everyone deserves a chance to showcase their best professional self. Founded in 2023, our mission is to democratize access to professional resume optimization using cutting-edge artificial intelligence.</p>
+                        <p>We've helped over 50,000 job seekers land their dream positions by providing instant, actionable feedback on their resumes. Our AI technology analyzes millions of successful resumes to understand what works and what doesn't in today's competitive job market.</p>
+                        <p>Whether you're a recent graduate, career changer, or seasoned professional, ResumeAI provides personalized recommendations tailored to your industry and career goals.</p>
+                    </div>
+                </div>
+                
+                <div class="about-values">
+                    <h3 class="values-title">Our Core Values</h3>
+                    <div class="values-grid">
+                        <div class="value-item">
+                            <div class="value-icon">
+                                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="20" cy="20" r="18" fill="#dbeafe"/>
+                                    <path d="M13 20L18 25L27 15" stroke="#60a5fa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <h4>Quality First</h4>
+                            <p>We never compromise on the quality of our AI analysis and recommendations</p>
+                        </div>
+                        <div class="value-item">
+                            <div class="value-icon">
+                                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="20" cy="20" r="18" fill="#fef9c3"/>
+                                    <path d="M20 10L22.5 15L28 16L24 20L25 26L20 23L15 26L16 20L12 16L17.5 15L20 10Z" stroke="#fcd34d" stroke-width="2"/>
+                                </svg>
+                            </div>
+                            <h4>Innovation</h4>
+                            <p>Constantly improving our AI to stay ahead of hiring trends</p>
+                        </div>
+                        <div class="value-item">
+                            <div class="value-icon">
+                                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="20" cy="20" r="18" fill="#d1fae5"/>
+                                    <circle cx="20" cy="16" r="5" stroke="#6ee7b7" stroke-width="2"/>
+                                    <path d="M12 28C12 24 15.5 22 20 22C24.5 22 28 24 28 28" stroke="#6ee7b7" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                            </div>
+                            <h4>User-Centric</h4>
+                            <p>Your success is our success - every feature is designed with you in mind</p>
+                        </div>
+                        <div class="value-item">
+                            <div class="value-icon">
+                                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="20" cy="20" r="18" fill="#fce7f3"/>
+                                    <rect x="14" y="12" width="12" height="16" rx="2" stroke="#f9a8d4" stroke-width="2"/>
+                                    <path d="M18 12V10C18 8.89543 18.8954 8 20 8C21.1046 8 22 8.89543 22 10V12" stroke="#f9a8d4" stroke-width="2"/>
+                                </svg>
+                            </div>
+                            <h4>Privacy & Security</h4>
+                            <p>Your data is encrypted and never shared with third parties</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="testimonials-section">
+                <h3 class="testimonials-title">What Our Users Say</h3>
+                <div class="testimonials-grid">
+                    <div class="testimonial-card">
+                        <div class="testimonial-rating">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                        </div>
+                        <p class="testimonial-text">"Resume Genie completely transformed my job search! The AI suggestions were spot-on, and I got 3 interview calls within a week of updating my resume. Highly recommended!"</p>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">
+                                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                                    <circle cx="24" cy="24" r="24" fill="#dbeafe"/>
+                                    <text x="24" y="30" text-anchor="middle" fill="#60a5fa" font-size="18" font-weight="600">SJ</text>
+                                </svg>
+                            </div>
+                            <div class="author-info">
+                                <div class="author-name">Sarah Johnson</div>
+                                <div class="author-role">Software Engineer at Google</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="testimonial-card">
+                        <div class="testimonial-rating">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                        </div>
+                        <p class="testimonial-text">"The ATS optimization feature is a game-changer. I was applying to jobs for months with no response. After using Resume Genie, I started getting callbacks immediately!"</p>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">
+                                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                                    <circle cx="24" cy="24" r="24" fill="#d1fae5"/>
+                                    <text x="24" y="30" text-anchor="middle" fill="#6ee7b7" font-size="18" font-weight="600">MC</text>
+                                </svg>
+                            </div>
+                            <div class="author-info">
+                                <div class="author-name">Michael Chen</div>
+                                <div class="author-role">Product Manager at Microsoft</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="testimonial-card">
+                        <div class="testimonial-rating">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                        </div>
+                        <p class="testimonial-text">"As a recent graduate, I had no idea how to format my resume properly. Resume Genie not only fixed my formatting but also helped me highlight my skills effectively. Landed my first job!"</p>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">
+                                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                                    <circle cx="24" cy="24" r="24" fill="#dcfce7"/>
+                                    <text x="24" y="30" text-anchor="middle" fill="#86efac" font-size="18" font-weight="600">EP</text>
+                                </svg>
+                            </div>
+                            <div class="author-info">
+                                <div class="author-name">Emily Parker</div>
+                                <div class="author-role">Data Analyst at Amazon</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!--<div class="testimonial-card">
+                        <div class="testimonial-rating">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                        </div>
+                        <p class="testimonial-text">"I've used several resume tools before, but ResumeAI stands out with its detailed feedback and industry-specific suggestions. Worth every penny!"</p>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">
+                                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                                    <circle cx="24" cy="24" r="24" fill="#fce7f3"/>
+                                    <text x="24" y="30" text-anchor="middle" fill="#f9a8d4" font-size="18" font-weight="600">DR</text>
+                                </svg>
+                            </div>
+                            <div class="author-info">
+                                <div class="author-name">David Rodriguez</div>
+                                <div class="author-role">Marketing Director at Adobe</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="testimonial-card">
+                        <div class="testimonial-rating">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                        </div>
+                        <p class="testimonial-text">"Switching careers was daunting, but ResumeAI helped me reposition my skills for my new industry. The personalized tips were incredibly valuable!"</p>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">
+                                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                                    <circle cx="24" cy="24" r="24" fill="#bfdbfe"/>
+                                    <text x="24" y="30" text-anchor="middle" fill="#60a5fa" font-size="18" font-weight="600">JT</text>
+                                </svg>
+                            </div>
+                            <div class="author-info">
+                                <div class="author-name">Jessica Taylor</div>
+                                <div class="author-role">UX Designer at Netflix</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="testimonial-card">
+                        <div class="testimonial-rating">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="#fbbf24">
+                                <path d="M10 0L12.5 6L19 7L14.5 11.5L15.5 18L10 15L4.5 18L5.5 11.5L1 7L7.5 6L10 0Z"/>
+                            </svg>
+                        </div>
+                        <p class="testimonial-text">"The version control feature is brilliant! I can customize my resume for different roles while keeping track of what works best. Increased my response rate by 300%!"</p>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">
+                                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                                    <circle cx="24" cy="24" r="24" fill="#fbcfe8"/>
+                                    <text x="24" y="30" text-anchor="middle" fill="#f472b6" font-size="18" font-weight="600">RA</text>
+                                </svg>
+                            </div>
+                            <div class="author-info">
+                                <div class="author-name">Robert Anderson</div>
+                                <div class="author-role">Senior Developer at Tesla</div>
+                            </div>
+                        </div>
+                    </div>-->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-overlay" id="modalOverlay"></div>
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+            <div class="modal-header">
+                <h2>Welcome Back</h2>
+                <p>Login to continue optimizing your resume</p>
+            </div>
+            <form class="login-form" id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <div class="form-options">
+                    <label class="checkbox">
+                        <input type="checkbox" id="remember">
+                        <span>Remember me</span>
+                    </label>
+                    <a href="#" class="forgot-link">Forgot password?</a>
+                </div>
+                <button type="submit" class="btn-submit">Login</button>
+                <div class="divider">
+                    <span>OR</span>
+                </div>
+                <button type="button" class="btn-social">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 13.9932 4.92547 17.3135 8.75 17.9V12.5H7V10H8.75V8C8.75 6.25 9.85 5.25 11.45 5.25C12.2 5.25 13 5.4 13 5.4V7H12.1C11.2 7 10.9 7.55 10.9 8.15V10H12.9L12.55 12.5H10.9V17.9C14.7245 17.3135 18 13.9932 18 10Z" fill="#1877F2"/>
+                    </svg>
+                    Continue with Google
+                </button>
+                <p class="signup-link">Don't have an account? <a href="#">Sign up</a></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Modal -->
+    <div class="modal" id="dashboardModal">
+        <div class="modal-overlay" id="dashboardOverlay"></div>
+        <div class="modal-content dashboard-content">
+            <button class="modal-close" id="closeDashboard">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+            <div class="dashboard-header">
+                <div class="dashboard-user">
+                    <div class="user-avatar">
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="24" cy="24" r="24" fill="url(#avatar-gradient)"/>
+                            <path d="M24 24C27.3137 24 30 21.3137 30 18C30 14.6863 27.3137 12 24 12C20.6863 12 18 14.6863 18 18C18 21.3137 20.6863 24 24 24Z" fill="white"/>
+                            <path d="M24 27C16.8203 27 11 30.134 11 34C11 35.1046 11.8954 36 13 36H35C36.1046 36 37 35.1046 37 34C37 30.134 31.1797 27 24 27Z" fill="white"/>
+                            <defs>
+                                <linearGradient id="avatar-gradient" x1="0" y1="0" x2="48" y2="48">
+                                    <stop offset="0%" stop-color="#60a5fa"/>
+                                    <stop offset="50%" stop-color="#86efac"/>
+                                    <stop offset="100%" stop-color="#f9a8d4"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div class="user-info">
+                        <h3>John Doe</h3>
+                        <p>john.doe@example.com</p>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-stats">
+                <div class="stat-card">
+                    <div class="stat-card-value">12</div>
+                    <div class="stat-card-label">Resumes Analyzed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-value">8.5/10</div>
+                    <div class="stat-card-label">Avg Score</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-value">5</div>
+                    <div class="stat-card-label">Active Versions</div>
+                </div>
+            </div>
+            <div class="dashboard-section">
+                <h4>Recent Resumes</h4>
+                <div class="resume-list">
+                    <div class="resume-item">
+                        <div class="resume-item-icon">
+                            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="32" height="32" rx="6" fill="#e0e7ff"/>
+                                <path d="M12 10H18L22 14V22H12V10Z" stroke="#667eea" stroke-width="1.5"/>
+                                <path d="M18 10V14H22" stroke="#667eea" stroke-width="1.5"/>
+                            </svg>
+                        </div>
+                        <div class="resume-item-info">
+                            <div class="resume-item-name">Software Engineer Resume</div>
+                            <div class="resume-item-date">Updated 2 days ago</div>
+                        </div>
+                        <div class="resume-item-score">9.2</div>
+                    </div>
+                    <div class="resume-item">
+                        <div class="resume-item-icon">
+                            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="32" height="32" rx="6" fill="#e0e7ff"/>
+                                <path d="M12 10H18L22 14V22H12V10Z" stroke="#667eea" stroke-width="1.5"/>
+                                <path d="M18 10V14H22" stroke="#667eea" stroke-width="1.5"/>
+                            </svg>
+                        </div>
+                        <div class="resume-item-info">
+                            <div class="resume-item-name">Product Manager CV</div>
+                            <div class="resume-item-date">Updated 1 week ago</div>
+                        </div>
+                        <div class="resume-item-score">8.7</div>
+                    </div>
+                    <div class="resume-item">
+                        <div class="resume-item-icon">
+                            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="32" height="32" rx="6" fill="#e0e7ff"/>
+                                <path d="M12 10H18L22 14V22H12V10Z" stroke="#667eea" stroke-width="1.5"/>
+                                <path d="M18 10V14H22" stroke="#667eea" stroke-width="1.5"/>
+                            </svg>
+                        </div>
+                        <div class="resume-item-info">
+                            <div class="resume-item-name">Data Analyst Resume</div>
+                            <div class="resume-item-date">Updated 2 weeks ago</div>
+                        </div>
+                        <div class="resume-item-score">7.9</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="logo">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="40" height="40" rx="8" fill="url(#footer-logo-gradient)"/>
+                            <path d="M12 15L20 23L28 15" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                            <defs>
+                                <linearGradient id="footer-logo-gradient" x1="0" y1="0" x2="40" y2="40">
+                                    <stop offset="0%" stop-color="#60a5fa"/>
+                                    <stop offset="50%" stop-color="#86efac"/>
+                                    <stop offset="100%" stop-color="#f9a8d4"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <span class="logo-text">Resume Genie</span>
+                    </div>
+                    <p class="footer-desc">Transform your career with AI-powered resume optimization</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h4>Product</h4>
+                        <a href="#features">Features</a>
+                        <a href="#how-it-works">How It Works</a>
+                        <a href="#upload">Get Started</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4>Company</h4>
+                        <a href="#about">About Us</a>
+                        <a href="#">Blog</a>
+                        <a href="#">Careers</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4>Support</h4>
+                        <a href="#">Help Center</a>
+                        <a href="#">Contact</a>
+                        <a href="#">Privacy</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Resume Genie. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
