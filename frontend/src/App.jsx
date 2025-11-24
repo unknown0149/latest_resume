@@ -7,6 +7,7 @@ import UploadPage from './pages/UploadPage'
 import DashboardPage from './pages/DashboardPage'
 import JobRoleDetailsPage from './pages/JobRoleDetailsPage'
 import SettingsPage from './pages/SettingsPage'
+import RoadmapPage from './pages/RoadmapPage'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
             <Route path="/upload" element={<UploadPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/job-role/:roleId" element={<JobRoleDetailsPage />} />
+            <Route path="/roadmap" element={<RoadmapPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </Router>

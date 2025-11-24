@@ -70,6 +70,12 @@ const Navbar = () => {
             >
               Dashboard
             </Link>
+            <Link 
+              to="/roadmap" 
+              className={`text-sm font-medium transition-colors ${isActive('/roadmap') ? 'text-primary-500' : 'text-gray-600 hover:text-primary-500'}`}
+            >
+              Career Roadmap
+            </Link>
           </nav>
 
           {/* Desktop Actions */}
@@ -145,6 +151,13 @@ const Navbar = () => {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Dashboard
+                </Link>
+                <Link 
+                  to="/roadmap" 
+                  className="block px-4 py-2 text-sm font-medium rounded-lg hover:bg-gray-50"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Career Roadmap
                 </Link>
               </>
             )}

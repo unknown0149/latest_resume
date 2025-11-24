@@ -42,10 +42,21 @@ const extractFromPDFWithPdfjs = async (filePath) => {
     try {
       const page = await pdfDocument.getPage(pageNum)
       const textContent = await page.getTextContent()
+      
+      // Better text assembly with position awareness
       const pageText = textContent.items
         .filter(item => item.str && item.str.trim())
-        .map(item => item.str)
-        .join(' ')
+        .map((item, index) => {
+          let text = item.str.trim()
+          // Add space after if next item doesn't start with punctuation
+          const nextItem = textContent.items[index + 1]
+          if (nextItem && nextItem.str && !/^[.,;:!?)}\]]/.test(nextItem.str)) {
+            text += ' '
+          }
+          return text
+        })
+        .join('')
+        
       if (pageText.trim()) {
         fullText += pageText + '\n'
         successfulPages++

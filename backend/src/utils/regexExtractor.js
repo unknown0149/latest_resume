@@ -328,6 +328,13 @@ export function extractCurrentTitle(text) {
 export function extractSkillKeywords(text) {
   if (!text) return { skills: [], confidence: 0 };
   
+  // Pre-process text to handle bullet points and special characters
+  let processedText = text
+    .replace(/[•●○◦▪▫■□]/g, ' ') // Remove bullet points
+    .replace(/[\n\r]/g, ' ')      // Replace newlines with spaces
+    .replace(/\s+/g, ' ')         // Normalize multiple spaces
+    .toLowerCase();
+  
   // Order matters: Check more specific skills first to avoid false matches
   const commonSkills = [
     // Programming Languages
@@ -373,7 +380,6 @@ export function extractSkillKeywords(text) {
     'visual studio code', 'vscode', 'intellij', 'linux', 'unix', 'bash', 'powershell', 'vim', 'eclipse'
   ];
   
-  const textLower = text.toLowerCase();
   const foundSkills = new Set();
   
   // Process skills in order - longer/more specific phrases first
@@ -382,7 +388,7 @@ export function extractSkillKeywords(text) {
     const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const pattern = new RegExp(`\\b${escapedSkill}\\b`, 'gi');
     
-    if (pattern.test(textLower)) {
+    if (pattern.test(processedText)) {
       // Only add if not a substring match of already found skills
       const isSubstring = [...foundSkills].some(found => {
         return (found.length > skill.length && found.includes(skill)) || 
