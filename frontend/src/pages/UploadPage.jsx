@@ -77,11 +77,15 @@ const UploadPage = () => {
 
       // Store all data in context
       setUploadedResume(file)
+      
+      // Store parsed resume - extract the actual resume data
+      const parsedData = parseResponse.parsed_resume || parseResponse.data?.parsed_resume || {}
+      console.log('📋 Parsed resume data:', parsedData)
+      
       setParsedResume({
         resumeId,
-        ...uploadResponse,
-        parsed_resume: parseResponse.parsed_resume,
-        metadata: parseResponse.metadata,
+        ...parsedData, // Spread parsed resume fields at top level
+        _metadata: parseResponse.metadata, // Store metadata separately
       })
       
       // Store role analysis data
