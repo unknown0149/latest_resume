@@ -3,7 +3,7 @@
  * Analyzes resume skills against target role to identify gaps, levels, and salary boost opportunities
  */
 
-import { normalizeSkillsArray, matchSkillsFuzzy } from '../utils/skillNormalizer.js';
+import { normalizeSkillsArray, normalizeSkill, matchSkillsFuzzy } from '../utils/skillNormalizer.js';
 import { getRoleByName } from '../data/roleSkillDatabase.js';
 import { getTopSalaryBoostOpportunities, calculatePotentialIncrease } from '../data/salaryBoostSkills.js';
 import { logger } from '../utils/logger.js';

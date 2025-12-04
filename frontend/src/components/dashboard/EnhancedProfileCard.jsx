@@ -38,7 +38,8 @@ const EnhancedProfileCard = ({ resumeId, analysis, parsedResume, onProfileLoaded
         onProfileLoaded(response.data.profile);
       }
       if (response.data.profile.photoUrl) {
-        setPhotoPreview(`http://localhost:5000${response.data.profile.photoUrl}`);
+        const baseURL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000';
+        setPhotoPreview(`${baseURL}${response.data.profile.photoUrl}`);
       }
       
       // Fetch verification status
@@ -108,7 +109,8 @@ const EnhancedProfileCard = ({ resumeId, analysis, parsedResume, onProfileLoaded
       const response = await api.post(`/resume/${resumeId}/profile/photo`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setPhotoPreview(`http://localhost:5000${response.data.photoUrl}`);
+      const baseURL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000';
+      setPhotoPreview(`${baseURL}${response.data.photoUrl}`);
       setSelectedPhoto(null);
     } catch (error) {
       console.error('Error uploading photo:', error);

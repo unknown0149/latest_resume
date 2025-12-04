@@ -21,12 +21,20 @@ const __dirname = path.dirname(__filename)
 // Load environment variables
 dotenv.config()
 
+// Validate critical environment variables
+if (!process.env.JWT_SECRET) {
+  logger.error('FATAL: JWT_SECRET is not set in environment variables')
+  process.exit(1)
+}
+
+if (!process.env.MONGODB_URI) {
+  logger.error('FATAL: MONGODB_URI is not set in environment variables')
+  process.exit(1)
+}
+
 // Create Express app
 const app = express()
 const PORT = process.env.PORT || 8000
-
-// Connect to MongoDB
-connectDB()
 
 // CORS configuration
 const corsOptions = {

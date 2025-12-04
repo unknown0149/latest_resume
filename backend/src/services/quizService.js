@@ -8,21 +8,7 @@ import Quiz from '../models/Quiz.js';
 import Resume from '../models/Resume.js';
 import { logger } from '../utils/logger.js';
 import { generateQuizQuestions } from './aiRouter.js';
-
-/**
- * Determine badge level based on quiz score
- */
-function determineBadge(score) {
-  if (score >= 85) {
-    return { level: 'gold', label: 'Gold Badge', color: '#fbbf24', icon: '🥇' };
-  } else if (score >= 70) {
-    return { level: 'silver', label: 'Silver Badge', color: '#d1d5db', icon: '🥈' };
-  } else if (score >= 50) {
-    return { level: 'bronze', label: 'Bronze Badge', color: '#fb923c', icon: '🥉' };
-  } else {
-    return { level: 'none', label: 'Needs Practice', color: '#94a3b8', icon: '🎯' };
-  }
-}
+import { determineBadge } from '../utils/badgeUtils.js';
 
 /**
  * Generate a new MCQ quiz for a skill
