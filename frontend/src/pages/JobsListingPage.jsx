@@ -1,17 +1,19 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
   Filter,
   MapPin,
   Briefcase,
-  DollarSign,
+  IndianRupee,
   ExternalLink,
   X,
   Award,
   Star,
-  Sparkles
+  Sparkles,
+  Users,
+  BadgeCheck
 } from 'lucide-react'
 import Navbar from '../components/ui/Navbar'
 import Footer from '../components/ui/Footer'
@@ -19,12 +21,14 @@ import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 import api from '../services/api'
 import { useResumeContext } from '../hooks/useResumeContext'
+import { useAuth } from '../hooks/useAuth'
+import toast from 'react-hot-toast'
 
 const PAGE_SIZE = 9
 
 const JobsListingPage = () => {
   const [searchParams] = useSearchParams()
-  const { parsedResume } = useResumeContext()
+  const { parsedResume, skillGaps } = useResumeContext()
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -32,6 +36,10 @@ const JobsListingPage = () => {
   const [page, setPage] = useState(1)
   const [searchMeta, setSearchMeta] = useState({ total: 0, returned: 0, nextOffset: null })
   const offsetHistoryRef = useRef([0])
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
+  const [applyingJobId, setApplyingJobId] = useState(null)
+  const [appliedJobIds, setAppliedJobIds] = useState(() => new Set())
   
   // Filters
   const [search, setSearch] = useState('')
@@ -47,9 +55,61 @@ const JobsListingPage = () => {
   const [sortOrder, setSortOrder] = useState('desc')
   const [showFilters, setShowFilters] = useState(false)
 
-  useEffect(() => {
-    fetchJobs(1, { resetCursor: true })
-  }, [fetchJobs])
+  const verifiedSkillNames = useMemo(() => {
+    const collected = []
+    const pushSkill = (rawSkill) => {
+      if (!rawSkill || typeof rawSkill !== 'string') {
+        return
+      }
+      const normalized = rawSkill.trim()
+      if (!normalized) {
+        return
+      }
+      if (!collected.some((item) => item.toLowerCase() === normalized.toLowerCase())) {
+        collected.push(normalized)
+      }
+    }
+
+    const ownedSkills = Array.isArray(skillGaps?.skillsHave) ? skillGaps.skillsHave : []
+    ownedSkills
+      .filter((skill) => skill?.verified)
+      .forEach((skill) => pushSkill(skill.skill || skill.name || skill.title))
+
+    const verificationStatusSkills = parsedResume?.parsed_resume?.verification_status?.verifiedSkills || []
+    verificationStatusSkills.forEach((skill) => pushSkill(skill.skill || skill.name || skill.title))
+
+    return collected
+  }, [skillGaps, parsedResume])
+
+  const verifiedSkillSet = useMemo(() => new Set(verifiedSkillNames.map((skill) => skill.toLowerCase())), [verifiedSkillNames])
+  const hasVerifiedSkills = verifiedSkillNames.length > 0
+
+  const getVerifiedSkillMatches = useCallback((job) => {
+    if (!verifiedSkillSet.size) {
+      return []
+    }
+
+    const aggregateSkills = []
+    if (Array.isArray(job.skills?.allSkills)) {
+      aggregateSkills.push(...job.skills.allSkills)
+    }
+    if (Array.isArray(job.skills?.required)) {
+      aggregateSkills.push(...job.skills.required)
+    }
+
+    const uniqueSkills = []
+    aggregateSkills.forEach((skill) => {
+      if (!skill || typeof skill !== 'string') {
+        return
+      }
+      const normalized = skill.trim().toLowerCase()
+      if (normalized && !uniqueSkills.some((existing) => existing.toLowerCase() === skill.toLowerCase())) {
+        uniqueSkills.push(skill)
+      }
+    })
+
+    return uniqueSkills.filter((skill) => verifiedSkillSet.has(skill.toLowerCase()))
+  }, [verifiedSkillSet])
 
   const fetchJobs = useCallback(
     async (targetPage = 1, { resetCursor = false } = {}) => {
@@ -101,21 +161,22 @@ const JobsListingPage = () => {
         if (sortBy) params.set('sortBy', sortBy)
         if (sortOrder) params.set('sortOrder', sortOrder)
 
-        const response = await api.get(`/jobs/search?${params.toString()}`)
+        // Use /all endpoint to get jobs from all recruiters
+        const response = await api.get(`/jobs/all?${params.toString()}`)
         const data = response.data || {}
         const fetchedJobs = data.jobs || []
 
         setJobs(fetchedJobs)
         setSearchMeta({
-          total: data.total ?? fetchedJobs.length,
-          returned: data.returned ?? fetchedJobs.length,
-          nextOffset: data.nextOffset ?? null
+          total: data.pagination?.total ?? fetchedJobs.length,
+          returned: fetchedJobs.length,
+          nextOffset: data.pagination?.page < data.pagination?.pages ? data.pagination.page + 1 : null
         })
 
         const nextOffsets = [...offsets]
         nextOffsets[targetPage - 1] = cursor
-        if (data.nextOffset !== undefined) {
-          nextOffsets[targetPage] = data.nextOffset
+        if (data.pagination && data.pagination.page < data.pagination.pages) {
+          nextOffsets[targetPage] = data.pagination.page * PAGE_SIZE
         }
         offsetHistoryRef.current = nextOffsets
         setPage(targetPage)
@@ -143,6 +204,112 @@ const JobsListingPage = () => {
     ]
   )
 
+  useEffect(() => {
+    fetchJobs(1, { resetCursor: true })
+  }, [fetchJobs])
+
+  const markJobAsApplied = useCallback((jobIdentifier) => {
+    if (!jobIdentifier) return
+
+    setAppliedJobIds((prev) => {
+      const next = new Set(prev)
+      next.add(jobIdentifier)
+      return next
+    })
+
+    setJobs((prev) =>
+      prev.map((job) =>
+        (job.jobId || job.id) === jobIdentifier
+          ? { ...job, applicationStatus: 'applied' }
+          : job
+      )
+    )
+  }, [])
+
+  useEffect(() => {
+    if (!parsedResume?.resumeId || !isAuthenticated) {
+      setAppliedJobIds(new Set())
+      return
+    }
+
+    let isCancelled = false
+
+    const loadAppliedJobs = async () => {
+      try {
+        const response = await api.get(`/jobs/applied/${parsedResume.resumeId}`)
+        if (isCancelled) return
+
+        const appliedEntries = response.data?.data || []
+        const jobIds = new Set(
+          appliedEntries
+            .map((entry) => entry.job?.jobId)
+            .filter(Boolean)
+        )
+
+        setAppliedJobIds(jobIds)
+
+        if (jobIds.size) {
+          setJobs((prev) =>
+            prev.map((job) =>
+              jobIds.has(job.jobId || job.id)
+                ? { ...job, applicationStatus: 'applied' }
+                : job
+            )
+          )
+        }
+      } catch (err) {
+        console.error('Failed to load applied jobs:', err)
+      }
+    }
+
+    loadAppliedJobs()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [parsedResume?.resumeId, isAuthenticated])
+
+  const handleApply = useCallback(async (job) => {
+    const jobIdentifier = job.jobId || job.id
+    if (!jobIdentifier) {
+      toast.error('Unable to apply to this job. Missing job identifier.')
+      return
+    }
+
+    // For external/live jobs with an applicationUrl and no organization (not recruiter-owned), open the link directly
+    if (job.applicationUrl && !job.organizationId) {
+      window.open(job.applicationUrl, '_blank', 'noopener,noreferrer')
+      return
+    }
+
+    if (!isAuthenticated) {
+      toast.error('Please log in to apply for jobs.')
+      navigate('/login?redirect=/jobs')
+      return
+    }
+
+    if (!parsedResume?.resumeId) {
+      toast.error('Upload your resume before applying to jobs.')
+      navigate('/upload')
+      return
+    }
+
+    try {
+      setApplyingJobId(jobIdentifier)
+      await api.post(`/jobs/${jobIdentifier}/apply`, {
+        resumeId: parsedResume.resumeId
+      })
+      toast.success('Application submitted!')
+      markJobAsApplied(jobIdentifier)
+    } catch (err) {
+      console.error('Failed to apply for job:', err)
+      const message = err.response?.data?.message || 'Failed to submit your application'
+      toast.error(message)
+    } finally {
+      setApplyingJobId(null)
+    }
+  }, [isAuthenticated, parsedResume?.resumeId, navigate, markJobAsApplied])
+
   const clearFilters = () => {
     setSearch('')
     setLocation('')
@@ -156,17 +323,23 @@ const JobsListingPage = () => {
     setPage(1)
   }
 
+  const toInr = (value, currency) => {
+    if (!value) return 0
+    if (currency && currency.toUpperCase() === 'USD') {
+      return Math.round(value * 83)
+    }
+    return value
+  }
+
   const formatSalary = (min, max, currency) => {
     if (!min && !max) return 'Not specified'
-    const format = (val) => {
-      if (currency === 'INR') {
-        return val >= 100000 ? `₹${(val / 100000).toFixed(1)}L` : `₹${val}`
-      }
-      return val >= 1000 ? `$${(val / 1000).toFixed(0)}k` : `$${val}`
-    }
-    if (min && max) return `${format(min)} - ${format(max)}`
-    if (min) return `From ${format(min)}`
-    if (max) return `Up to ${format(max)}`
+    const minInr = toInr(min, currency)
+    const maxInr = toInr(max, currency)
+    const format = (val) => (val >= 100000 ? `₹${(val / 100000).toFixed(1)}L` : `₹${val.toLocaleString('en-IN')}`)
+    if (min && max) return `${format(minInr)} - ${format(maxInr)}`
+    if (min) return `From ${format(minInr)}`
+    if (max) return `Up to ${format(maxInr)}`
+    return 'Not specified'
   }
 
   const formatDate = (date) => {
@@ -302,133 +475,193 @@ const JobsListingPage = () => {
     }
   }, [page, totalPages])
 
-  const renderJobCard = (job) => (
-    <motion.article
-      key={job.jobId || job.id}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -6 }}
-      className="group relative rounded-3xl border border-[var(--rg-border)] bg-[var(--rg-surface)]/90 backdrop-blur shadow-soft overflow-hidden"
-    >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-transparent to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-      <div className="relative z-10 flex flex-col h-full p-6 gap-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-secondary mb-1">{job.company?.name || job.company}</p>
-            <h3 className="text-xl font-semibold text-primary leading-snug line-clamp-2">{job.title}</h3>
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            {showMatched && job.matchScore && (
-              <span className="px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-700">
-                {Math.round(job.matchScore)}% match
-              </span>
-            )}
-            {job.tag && (
-              <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-900/5 text-slate-600">
-                {job.tag}
-              </span>
-            )}
-          </div>
-        </div>
+  const renderJobCard = (job) => {
+    const jobIdentifier = job.jobId || job.id
+    const alreadyApplied = appliedJobIds.has(jobIdentifier)
+    const sourcePlatform = (job.source?.platform || '').toLowerCase()
+    const useInternalApply = !job.applicationUrl || ['manual', 'direct', 'real'].includes(sourcePlatform)
+    const isApplyingCurrent = applyingJobId === jobIdentifier
+    const verifiedMatches = getVerifiedSkillMatches(job)
 
-        <div className="grid grid-cols-2 gap-4 text-sm text-secondary">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary-500" />
-            <span>{job.location?.city || 'Remote'}{job.location?.isRemote ? ' · Remote' : ''}</span>
+    return (
+      <motion.article
+        key={jobIdentifier}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ y: -6 }}
+        className="group relative rounded-3xl border border-[var(--rg-border)] bg-[var(--rg-surface)]/90 backdrop-blur shadow-soft overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-transparent to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        <div className="relative z-10 flex flex-col h-full p-6 gap-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.35em] text-secondary mb-1">{job.company?.name || job.company}</p>
+              <h3 className="text-xl font-semibold text-primary leading-snug line-clamp-2">{job.title}</h3>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              {showMatched && job.matchScore && (
+                <span className="px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-700">
+                  {Math.round(job.matchScore)}% match
+                </span>
+              )}
+              {job.tag && (
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-900/5 text-slate-600">
+                  {job.tag}
+                </span>
+              )}
+              {job.isVerified && (
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 inline-flex items-center gap-1">
+                  <BadgeCheck className="w-3.5 h-3.5" /> Verified role
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-primary-500" />
-            <span>{formatSalary(job.salary?.min, job.salary?.max, job.salary?.currency)}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Briefcase className="w-4 h-4 text-primary-500" />
-            <span className="capitalize">{job.employmentType}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Award className="w-4 h-4 text-primary-500" />
-            <span className="capitalize">{job.experienceLevel}</span>
-          </div>
-        </div>
 
-        <p className="text-sm text-secondary/90 leading-relaxed line-clamp-3">
-          {job.description}
-        </p>
-
-        {job.compatibility && (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-900">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold inline-flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5" /> Watson verified
-              </span>
-              <span className="font-semibold">
-                {Math.round((job.compatibility.confidence || 0) * 100)}% confidence
+          <div className="grid grid-cols-2 gap-4 text-sm text-secondary">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary-500" />
+              <span>{job.location?.city || 'Remote'}{job.location?.isRemote ? ' · Remote' : ''}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-primary-500" />
+              <span>
+                {formatSalary(job.salary?.min, job.salary?.max, job.salary?.currency)}
+                {job.salary?.period ? ` / ${job.salary.period === 'hourly' ? 'hr' : 'yr'}` : ''}
               </span>
             </div>
-            {job.compatibility.reason && (
-              <p className="text-[11px] text-emerald-800/80 mb-2 line-clamp-2">
-                {job.compatibility.reason}
+            <div className="flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-primary-500" />
+              <span className="capitalize">{job.employmentType}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Award className="w-4 h-4 text-primary-500" />
+              <span className="capitalize">{job.experienceLevel}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary-500" />
+              <span>{job.applications || 0} applications</span>
+            </div>
+          </div>
+
+          <p className="text-sm text-secondary/90 leading-relaxed line-clamp-3">
+            {job.description}
+          </p>
+
+          {job.compatibility && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-900">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold inline-flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5" /> Watson verified
+                </span>
+                <span className="font-semibold">
+                  {Math.round((job.compatibility.confidence || 0) * 100)}% confidence
+                </span>
+              </div>
+              {job.compatibility.reason && (
+                <p className="text-[11px] text-emerald-800/80 mb-2 line-clamp-2">
+                  {job.compatibility.reason}
+                </p>
+              )}
+              {job.compatibility.matchedSkills?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-1">
+                  {job.compatibility.matchedSkills.slice(0, 4).map((skill) => (
+                    <span
+                      key={skill}
+                      className="px-2 py-0.5 rounded-full bg-white/80 text-[11px] font-medium capitalize"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                  {job.compatibility.matchedSkills.length > 4 && (
+                    <span className="text-[11px] text-emerald-700">
+                      +{job.compatibility.matchedSkills.length - 4} more
+                    </span>
+                  )}
+                </div>
+              )}
+              {job.compatibility.missingSkills?.length > 0 && (
+                <p className="text-[11px] text-rose-600">
+                  Missing: {job.compatibility.missingSkills.slice(0, 3).join(', ')}
+                  {job.compatibility.missingSkills.length > 3 ? '…' : ''}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-secondary">
+              <BadgeCheck className="w-3.5 h-3.5 text-primary-500" />
+              Verified skills
+            </div>
+            {hasVerifiedSkills ? (
+              verifiedMatches.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {verifiedMatches.slice(0, 6).map((skill) => (
+                    <span
+                      key={skill}
+                      className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 capitalize border border-emerald-100"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                  {verifiedMatches.length > 6 && (
+                    <span className="px-3 py-1 text-xs text-secondary">
+                      +{verifiedMatches.length - 6} more
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-secondary/80">
+                  None of your verified skills align with this role yet. Add more badges to unlock matches.
+                </p>
+              )
+            ) : (
+              <p className="text-xs text-secondary/80">
+                Verify your skills from the dashboard to compare them directly against job requirements.
               </p>
             )}
-            {job.compatibility.matchedSkills?.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-1">
-                {job.compatibility.matchedSkills.slice(0, 4).map((skill) => (
-                  <span
-                    key={skill}
-                    className="px-2 py-0.5 rounded-full bg-white/80 text-[11px] font-medium capitalize"
-                  >
-                    {skill}
-                  </span>
-                ))}
-                {job.compatibility.matchedSkills.length > 4 && (
-                  <span className="text-[11px] text-emerald-700">
-                    +{job.compatibility.matchedSkills.length - 4} more
+          </div>
+
+          <div className="mt-auto flex items-center justify-between border-t border-[var(--rg-border)] pt-4">
+            <div className="flex flex-col gap-1 text-xs text-secondary">
+              <div className="flex items-center gap-2">
+                <span>{formatDate(job.postedDate)}</span>
+                {alreadyApplied && (
+                  <span className="px-2 py-0.5 rounded-full border border-emerald-100 bg-emerald-50 text-emerald-700">
+                    Applied
                   </span>
                 )}
               </div>
-            )}
-            {job.compatibility.missingSkills?.length > 0 && (
-              <p className="text-[11px] text-rose-600">
-                Missing: {job.compatibility.missingSkills.slice(0, 3).join(', ')}
-                {job.compatibility.missingSkills.length > 3 ? '…' : ''}
-              </p>
-            )}
-          </div>
-        )}
-
-        {job.skills?.allSkills?.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {job.skills.allSkills.slice(0, 6).map((skill) => (
-              <span
-                key={skill}
-                className="px-3 py-1 rounded-full text-xs font-medium bg-[var(--rg-surface-alt)] text-primary capitalize"
+              <div className="flex items-center gap-1 text-secondary/80">
+                <Users className="w-3.5 h-3.5" />
+                <span>{job.applications || 0} total applicant{(job.applications || 0) === 1 ? '' : 's'}</span>
+              </div>
+            </div>
+            {useInternalApply ? (
+              <Button
+                className="gap-2"
+                onClick={() => handleApply(job)}
+                disabled={alreadyApplied || isApplyingCurrent}
               >
-                {skill}
-              </span>
-            ))}
-            {job.skills.allSkills.length > 6 && (
-              <span className="px-3 py-1 text-xs text-secondary">
-                +{job.skills.allSkills.length - 6} more
-              </span>
+                {alreadyApplied ? 'Applied' : isApplyingCurrent ? 'Applying...' : 'Apply'}
+              </Button>
+            ) : (
+              <a
+                href={job.applicationUrl || job.source?.sourceUrl || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex"
+              >
+                <Button className="gap-2">
+                  <ExternalLink className="w-4 h-4" /> Apply
+                </Button>
+              </a>
             )}
           </div>
-        )}
-
-        <div className="mt-auto flex items-center justify-between border-t border-[var(--rg-border)] pt-4">
-          <span className="text-xs text-secondary">{formatDate(job.postedDate)}</span>
-          <a
-            href={job.applicationUrl || job.source?.sourceUrl || '#'}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex"
-          >
-            <Button className="gap-2">
-              <ExternalLink className="w-4 h-4" /> Apply
-            </Button>
-          </a>
         </div>
-      </div>
-    </motion.article>
-  )
+      </motion.article>
+    )
+  }
 
   const handlePageChange = (direction) => {
     if (direction === 'next') {
@@ -459,16 +692,16 @@ const JobsListingPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--rg-body)]">
+    <div className="min-h-screen page-shell">
       <Navbar />
 
       <div className="pt-20 pb-12">
-        <div className="bg-gradient-to-br from-[#0d1b2a] via-[#1b263b] to-[#415a77] text-white py-16 px-4">
-          <div className="max-w-7xl mx-auto">
+        <div className="bg-[var(--rg-surface)] border-b border-[var(--rg-border)] py-16 px-4 shadow-soft">
+          <div className="max-w-7xl mx-auto section-shell px-0">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-              <p className="text-xs uppercase tracking-[0.5em] text-white/70 mb-4">opportunities</p>
-              <h1 className="text-4xl md:text-5xl font-semibold leading-tight mb-3">Explore Job Opportunities</h1>
-              <p className="text-white/80 text-lg mb-6">
+              <p className="text-xs uppercase tracking-[0.5em] text-[var(--rg-text-secondary)] mb-4">opportunities</p>
+              <h1 className="text-4xl md:text-5xl font-semibold leading-tight mb-3 text-[var(--rg-text-primary)]">Explore Job Opportunities</h1>
+              <p className="text-[var(--rg-text-secondary)] text-lg mb-6">
                 {activeCount} curated {showMatched ? 'matches' : 'listings'} streaming from the CSV feed
               </p>
 
@@ -477,14 +710,14 @@ const JobsListingPage = () => {
                   <button
                     onClick={() => setShowMatched((prev) => !prev)}
                     className={`px-5 py-3 rounded-2xl font-medium inline-flex items-center gap-2 transition ${
-                      showMatched ? 'bg-white text-slate-900 shadow-lg' : 'bg-white/10 backdrop-blur text-white'
+                      showMatched ? 'bg-[var(--rg-accent)] text-white shadow-soft' : 'bg-[var(--rg-surface-alt)] text-[var(--rg-text-primary)] border border-[var(--rg-border)]'
                     }`}
                   >
                     <Star className="w-4 h-4" />
                     {showMatched ? 'Showing matched jobs' : 'Use my resume to sort by match'}
                   </button>
                   {showMatched && (
-                    <span className="text-sm text-white/70 flex items-center gap-2">
+                    <span className="text-sm text-[var(--rg-text-secondary)] flex items-center gap-2">
                       <Sparkles className="w-4 h-4" /> Match score prioritized
                     </span>
                   )}
@@ -493,19 +726,43 @@ const JobsListingPage = () => {
 
               <div className="flex flex-wrap gap-3">
                 <div className="flex-1 min-w-[240px] relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/60" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--rg-text-secondary)]" />
                   <input
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search by job title, company, skills..."
-                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/15 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white"
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-[var(--rg-surface-alt)] border border-[var(--rg-border)] text-[var(--rg-text-primary)] placeholder-[var(--rg-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--rg-accent)]"
                   />
                 </div>
-                <Button onClick={() => setShowFilters(!showFilters)} variant="secondary" className="px-6 py-4 bg-white text-primary-600">
+                <Button onClick={() => setShowFilters(!showFilters)} variant="secondary" className="px-6 py-4">
                   <Filter className="w-4 h-4 mr-2" /> Filters
                 </Button>
               </div>
+
+              {hasVerifiedSkills && (
+                <div className="mt-8 rounded-3xl border border-[var(--rg-border)] bg-[var(--rg-surface-alt)] p-6">
+                  <div className="flex items-center gap-3 text-xs uppercase tracking-[0.4em] text-[var(--rg-text-secondary)]">
+                    <BadgeCheck className="w-4 h-4 text-[var(--rg-text-primary)]" />
+                    Verified skill badges
+                  </div>
+                  <p className="mt-2 text-[var(--rg-text-secondary)] text-sm">
+                    Recruiters will only see the skills you have verified. Highlighted below are the ones linked to your profile.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {verifiedSkillNames.slice(0, 10).map((skill) => (
+                      <span key={skill} className="px-4 py-2 rounded-2xl bg-white text-slate-900 text-sm font-semibold shadow-sm">
+                        {skill}
+                      </span>
+                    ))}
+                    {verifiedSkillNames.length > 10 && (
+                      <span className="px-4 py-2 rounded-2xl border border-white/50 text-white/80 text-sm">
+                        +{verifiedSkillNames.length - 10} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
         </div>

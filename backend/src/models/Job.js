@@ -48,6 +48,19 @@ const jobSchema = new mongoose.Schema(
         default: false,
         index: true,
       },
+    },
+    
+    // Multi-tenancy support
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      default: null,
+      index: true,
+    },
+    postedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
       locationType: {
         type: String,
         enum: ['on-site', 'remote', 'hybrid'],

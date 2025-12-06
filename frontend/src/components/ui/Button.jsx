@@ -9,20 +9,20 @@ const Button = ({
   isLoading = false,
   ...props 
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-semibold rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--rg-text-primary)] focus-visible:ring-offset-[var(--rg-bg)]'
+  const baseStyles = 'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--rg-accent)] focus-visible:ring-offset-[var(--rg-bg)] shadow-sm'
   
   const variants = {
-    primary: 'bg-[var(--rg-text-primary)] text-[var(--rg-bg)] shadow-soft hover:opacity-90',
-    secondary: 'bg-[var(--rg-surface-alt)] text-[var(--rg-text-primary)] border border-[var(--rg-border)] hover:border-[var(--rg-border-strong)] hover:shadow-soft',
-    outline: 'border border-[var(--rg-border)] text-[var(--rg-text-primary)] hover:bg-[var(--rg-surface-alt)]',
+    primary: 'bg-[var(--rg-accent)] text-white border border-[var(--rg-accent-strong)] shadow-[0_15px_30px_rgba(31,122,236,0.22)] hover:shadow-[0_18px_36px_rgba(31,122,236,0.26)] hover:-translate-y-0.5',
+    secondary: 'bg-[var(--rg-surface-alt)] text-[var(--rg-text-primary)] border border-[var(--rg-border)] hover:border-[var(--rg-border-strong)] hover:-translate-y-0.5',
+    outline: 'border border-[var(--rg-border)] text-[var(--rg-text-primary)] bg-[var(--rg-surface)] hover:bg-[var(--rg-bg-muted)]/60',
     ghost: 'text-[var(--rg-text-secondary)] hover:text-[var(--rg-text-primary)] hover:bg-[var(--rg-bg-muted)]/60',
     danger: 'bg-red-500 text-white hover:bg-red-600',
   }
 
   const sizes = {
     sm: 'px-4 py-2 text-sm',
-    md: 'px-6 py-2.5 text-base',
-    lg: 'px-8 py-3 text-lg',
+    md: 'px-6 py-2.7 text-base',
+    lg: 'px-8 py-3.25 text-lg',
     xl: 'px-10 py-4 text-xl',
   }
 

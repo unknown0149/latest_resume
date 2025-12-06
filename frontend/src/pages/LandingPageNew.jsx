@@ -87,22 +87,22 @@ const LandingPageNew = () => {
     : 'polygon(6% 4%, 94% 0%, 99% 82%, 6% 100%, 0% 18%)'
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] text-[#1d1d1f] font-sans selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
+    <div className="page-shell font-sans selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
       
       {/* Navigation (Minimal) */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 bg-[#F5F5F7]/80 backdrop-blur-md border-b border-gray-200/50">
+      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 bg-[var(--rg-surface)]/90 backdrop-blur-md border-b border-[var(--rg-border)] shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
         <div className="max-w-[1200px] mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white">
+            <div className="w-9 h-9 bg-[var(--rg-accent)] rounded-lg flex items-center justify-center text-white shadow-sm">
               <Zap size={16} fill="currentColor" />
             </div>
-            <span className="font-semibold tracking-tight text-lg">ResumeAI</span>
+            <span className="font-semibold tracking-tight text-lg text-[var(--rg-text-primary)]">ResumeAI</span>
           </div>
           <div className="flex gap-4">
-            <button onClick={() => navigate('/login')} className="text-sm font-medium text-gray-600 hover:text-black transition-colors">
+            <button onClick={() => navigate('/login')} className="text-sm font-semibold text-[var(--rg-text-secondary)] hover:text-[var(--rg-text-primary)] transition-colors">
               Sign in
             </button>
-            <button onClick={() => navigate('/register')} className="text-sm font-medium bg-black text-white px-4 py-2 rounded-full hover:bg-gray-800 transition-colors">
+            <button onClick={() => navigate('/register')} className="text-sm font-semibold bg-[var(--rg-accent)] text-white px-4 py-2 rounded-full shadow-sm hover:opacity-95 transition-colors">
               Get Started
             </button>
           </div>

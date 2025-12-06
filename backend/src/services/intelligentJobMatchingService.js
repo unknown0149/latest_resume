@@ -22,50 +22,110 @@ import { predictRoleWithWatson, generateJobSummary } from './resumeProcessingSer
 import { generateCandidateEmbedding, generateJobEmbedding } from './embeddingService.js';
 
 const SKILL_ALIAS_GROUPS = {
-  'javascript': ['js', 'ecmascript', 'es6', 'es2015', 'es2020'],
+  // Programming Languages
+  'javascript': ['js', 'ecmascript', 'es6', 'es2015', 'es2020', 'es2021', 'es2022'],
   'typescript': ['ts'],
-  'python': ['py', 'python3'],
-  'java': ['jdk', 'jvm'],
-  'react': ['reactjs', 'react.js'],
-  'react native': ['react-native'],
-  'vue': ['vuejs', 'vue.js'],
-  'angular': ['angularjs', 'angular.js'],
-  'node.js': ['nodejs', 'node'],
-  'express.js': ['express', 'expressjs'],
-  'next.js': ['nextjs', 'next'],
-  'nestjs': ['nest.js'],
-  'postgresql': ['postgres', 'psql'],
-  'mysql': ['sql', 'mariadb'],
-  'mongodb': ['mongo'],
-  'redis': ['redis-server'],
-  'docker': ['containerization', 'containers'],
-  'kubernetes': ['k8s'],
+  'python': ['py', 'python3', 'python2'],
+  'java': ['jdk', 'jvm', 'java se', 'java ee'],
+  'c++': ['cpp', 'c plus plus', 'cplusplus'],
+  'csharp': ['c#', 'c sharp', '.net', 'dotnet'],
+  'php': ['php7', 'php8'],
+  'ruby': ['rb'],
+  'go': ['golang'],
+  'rust': ['rust-lang'],
+  'swift': ['swift5'],
+  'kotlin': ['kt'],
+  'scala': ['scala lang'],
+  'r': ['r-lang', 'r programming'],
+  
+  // Frontend Frameworks & Libraries
+  'react': ['reactjs', 'react.js', 'react js'],
+  'react native': ['react-native', 'reactnative'],
+  'vue': ['vuejs', 'vue.js', 'vue js'],
+  'angular': ['angularjs', 'angular.js', 'angular js'],
+  'svelte': ['sveltejs'],
+  'jquery': ['jquery3'],
+  
+  // Backend Frameworks
+  'node.js': ['nodejs', 'node', 'node js'],
+  'express.js': ['express', 'expressjs', 'express js'],
+  'next.js': ['nextjs', 'next', 'next js'],
+  'nestjs': ['nest.js', 'nest js'],
+  'django': ['django framework'],
+  'flask': ['flask framework'],
+  'spring': ['spring boot', 'spring framework'],
+  'laravel': ['laravel framework'],
+  'rails': ['ruby on rails', 'ror'],
+  
+  // Databases
+  'postgresql': ['postgres', 'psql', 'postgre sql'],
+  'mysql': ['sql', 'mariadb', 'my sql'],
+  'mongodb': ['mongo', 'mongo db'],
+  'redis': ['redis-server', 'redis db'],
+  'sqlite': ['sqlite3'],
+  'cassandra': ['apache cassandra'],
+  'dynamodb': ['dynamo db', 'aws dynamodb'],
+  'elasticsearch': ['elastic search', 'elastic'],
+  
+  // DevOps & Cloud
+  'docker': ['containerization', 'containers', 'docker compose'],
+  'kubernetes': ['k8s', 'k8', 'kube'],
   'terraform': ['tf'],
   'ansible': ['configuration management'],
-  'jenkins': ['jenkins ci'],
-  'git': ['github', 'gitlab', 'version control'],
-  'amazon web services': ['aws', 'amazon aws'],
+  'jenkins': ['jenkins ci', 'jenkins automation'],
+  'git': ['github', 'gitlab', 'version control', 'source control'],
+  'amazon web services': ['aws', 'amazon aws', 'aws cloud'],
   'google cloud platform': ['gcp', 'google cloud'],
-  'microsoft azure': ['azure'],
+  'microsoft azure': ['azure', 'azure cloud'],
   'ci/cd': ['continuous integration', 'continuous deployment', 'jenkins', 'github actions', 'gitlab ci'],
-  'graphql': ['graph ql'],
-  'rest api': ['restful', 'rest', 'rest apis'],
-  'tailwind css': ['tailwind'],
-  'css3': ['css'],
-  'html5': ['html'],
-  'machine learning': ['ml'],
-  'deep learning': ['dl'],
+  
+  // Web Technologies
+  'html': ['html5', 'html 5', 'hypertext markup language'],
+  'css': ['css3', 'css 3', 'cascading style sheets'],
+  'sass': ['scss', 'sass css'],
+  'less': ['less css'],
+  'tailwind css': ['tailwind', 'tailwindcss'],
+  'bootstrap': ['bootstrap 5', 'bootstrap 4'],
+  'graphql': ['graph ql', 'graphql api'],
+  'rest api': ['restful', 'rest', 'rest apis', 'restful api'],
+  'websockets': ['web sockets', 'socket.io'],
+  
+  // Data Science & AI
+  'machine learning': ['ml', 'machine-learning'],
+  'deep learning': ['dl', 'deep-learning'],
   'artificial intelligence': ['ai'],
   'natural language processing': ['nlp'],
   'computer vision': ['cv'],
+  'tensorflow': ['tf framework'],
+  'pytorch': ['torch'],
+  'scikit-learn': ['sklearn', 'scikit learn'],
+  'pandas': ['pandas library'],
+  'numpy': ['numpy library'],
+  
+  // Testing & QA
+  'testing': ['qa', 'quality assurance', 'test automation'],
+  'selenium': ['selenium webdriver', 'selenium testing'],
+  'jest': ['jest testing'],
+  'mocha': ['mocha testing'],
+  'cypress': ['cypress testing'],
+  'junit': ['junit testing'],
+  'pytest': ['py.test'],
+  
+  // Data Engineering
   'data engineering': ['etl', 'data pipelines'],
-  'testing': ['qa', 'quality assurance'],
-  'selenium': ['selenium webdriver'],
-  'elasticsearch': ['elastic search'],
-  'scikit-learn': ['sklearn', 'scikit learn']
+  'apache spark': ['spark', 'pyspark'],
+  'airflow': ['apache airflow'],
+  'kafka': ['apache kafka'],
+  
+  // Other Tools
+  'linux': ['unix', 'ubuntu', 'centos'],
+  'bash': ['shell scripting', 'bash scripting'],
+  'powershell': ['power shell'],
+  'nginx': ['nginx server'],
+  'apache': ['apache server', 'apache httpd']
 };
 
-function canonicalizeSkillName(skill) {
+export function canonicalizeSkillName(skill) {
   if (!skill) return '';
   const lower = skill.toLowerCase().trim();
   for (const [root, synonyms] of Object.entries(SKILL_ALIAS_GROUPS)) {
@@ -75,7 +135,7 @@ function canonicalizeSkillName(skill) {
   return lower;
 }
 
-function expandSkillSynonyms(skill) {
+export function expandSkillSynonyms(skill) {
   const canonical = canonicalizeSkillName(skill);
   if (!canonical) return [];
   const synonyms = SKILL_ALIAS_GROUPS[canonical] || [];
@@ -399,19 +459,35 @@ export async function analyzeSkills(resume, targetRole) {
       const targLower = targetSkill.toLowerCase().trim();
       if (!candLower || !targLower) return false;
 
+      // Exact match (case-insensitive)
+      if (candLower === targLower) return true;
+
+      // Canonical match (e.g., "js" === "javascript")
       const canonicalCandidate = canonicalizeSkillName(candidateSkill);
       const canonicalTarget = canonicalizeSkillName(targetSkill);
       if (canonicalCandidate && canonicalTarget && canonicalCandidate === canonicalTarget) {
         return true;
       }
 
+      // Synonym match (e.g., "reactjs" in ["react", "reactjs", "react.js"])
       const candidateTokens = expandSkillSynonyms(candidateSkill);
       const targetTokens = expandSkillSynonyms(targetSkill);
       if (candidateTokens.some(token => targetTokens.includes(token))) {
         return true;
       }
 
-      return candLower.includes(targLower) || targLower.includes(candLower);
+      // Word boundary substring match (prevents "java" matching "javascript")
+      // Only match if the substring is a complete word
+      const wordBoundary = (text, search) => {
+        const regex = new RegExp(`\\b${search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        return regex.test(text);
+      };
+      
+      if (wordBoundary(candLower, targLower) || wordBoundary(targLower, candLower)) {
+        return true;
+      }
+
+      return false;
     };
 
     const evaluateSkillPresence = (skillName, type, defaultPriority) => {

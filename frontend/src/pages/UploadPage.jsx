@@ -26,6 +26,7 @@ const UploadPage = () => {
     setParsedResume,
     setPredictedRoles,
     setMatchedJobs,
+    skillGaps,
     setSkillGaps,
     setSalaryBoost,
     setRoadmap,
@@ -58,12 +59,14 @@ const UploadPage = () => {
     setPreviewRoles([])
     setSalarySignals([])
 
+    let resumeId = null
+
     try {
       console.log('📤 Uploading resume...')
       const uploadResponse = await resumeAPI.uploadResume(file)
       console.log('✅ Upload response:', uploadResponse)
 
-      const resumeId = uploadResponse.resumeId
+      resumeId = uploadResponse.resumeId
       setResumeId(resumeId)
 
       console.log('🔍 Parsing resume...')
@@ -129,6 +132,31 @@ const UploadPage = () => {
             verificationScore: verification?.score || null
           })
         })
+
+        // Re-attach previously verified skills from cache even if resume text omitted them
+        const previousVerified = (skillGaps?.skillsHave || []).filter(entry => entry?.verified)
+        previousVerified.forEach(prev => {
+          const name = prev.skill || prev.name
+          if (!name) return
+          const key = name.toLowerCase()
+          if (!allSkills.has(name)) {
+            allSkills.set(name, {
+              skill: name,
+              current: prev.proficiency || prev.score || 80,
+              required: 100,
+              level: prev.level || 'Verified',
+              verified: true,
+              verificationScore: prev.verificationScore || prev.score || null
+            })
+          } else {
+            const existing = allSkills.get(name)
+            allSkills.set(name, { ...existing, verified: true, verificationScore: existing.verificationScore || prev.verificationScore || prev.score || null })
+          }
+          // Also seed verification map so downstream enrichedSkillsHave marks it verified
+          if (!verificationMap.has(key)) {
+            verificationMap.set(key, { skill: name, verified: true, score: prev.verificationScore || prev.score })
+          }
+        })
         
         // Add missing skills with proficiency = 0
         skillAnalysis.skillsMissing?.forEach(skillObj => {
@@ -157,6 +185,21 @@ const UploadPage = () => {
             verificationScore: verification?.score || null
           }
         })
+
+        // Add previously verified skills that were not in this parse
+        const existingNames = new Set(enrichedSkillsHave.map(s => s.skill?.toLowerCase()))
+        previousVerified.forEach(prev => {
+          const name = prev.skill || prev.name
+          if (!name) return
+          if (existingNames.has(name.toLowerCase())) return
+          enrichedSkillsHave.push({
+            ...prev,
+            skill: name,
+            verified: true,
+            verificationScore: prev.verificationScore || prev.score || null,
+            source: 'cached-verification'
+          })
+        })
         
         setSkillGaps({
           skillsHave: enrichedSkillsHave,
@@ -165,27 +208,37 @@ const UploadPage = () => {
           chartData: chartData
         })
         
-        const formatUsdRange = (absoluteUSD) => {
-          if (!absoluteUSD) return '+$12k - $25k'
+        const usdToInr = (value) => (typeof value === 'number' ? Math.round(value * 83) : value)
+        const formatInrRange = (absoluteUSD) => {
+          if (!absoluteUSD) return '+₹10L - ₹20L'
+          const normalize = (val) => {
+            if (typeof val !== 'number') return null
+            const inrVal = usdToInr(val)
+            return inrVal >= 100000 ? `₹${(inrVal / 100000).toFixed(1)}L` : `₹${inrVal.toLocaleString('en-IN')}`
+          }
+
           if (typeof absoluteUSD === 'number') {
-            return `+$${(absoluteUSD / 1000).toFixed(0)}k`
+            return `+${normalize(absoluteUSD)}`
           }
           const min = absoluteUSD.min ?? absoluteUSD.max
           const max = absoluteUSD.max ?? absoluteUSD.min
-          if (!min && !max) return '+$12k - $25k'
+          if (!min && !max) return '+₹10L - ₹20L'
+          const minFormatted = normalize(min)
+          const maxFormatted = normalize(max)
           if (min && max && min !== max) {
-            return `+$${(min / 1000).toFixed(0)}k - $${(max / 1000).toFixed(0)}k`
+            return `+${minFormatted} - ${maxFormatted}`
           }
           const value = max || min
-          return value ? `+$${(value / 1000).toFixed(0)}k` : '+$12k - $25k'
+          const single = normalize(value)
+          return single ? `+${single}` : '+₹10L - ₹20L'
         }
 
         const normalizedSalaryBoost = (salaryBoostRecommendations || []).map((boost, idx) => {
           const absoluteUSD = boost.salaryBoost?.absoluteUSD
           const percentage = boost.salaryBoost?.percentage
           const impactLabel = percentage
-            ? `${formatUsdRange(absoluteUSD)} (${percentage})`
-            : formatUsdRange(absoluteUSD)
+            ? `${formatInrRange(absoluteUSD)} (${percentage})`
+            : formatInrRange(absoluteUSD)
 
           return {
             ...boost,
@@ -204,8 +257,8 @@ const UploadPage = () => {
             const absoluteUSD = opportunity.potentialIncrease?.USD
             const percentage = opportunity.impact
             const impactLabel = percentage
-              ? `${formatUsdRange(absoluteUSD)} (${percentage})`
-              : formatUsdRange(absoluteUSD)
+              ? `${formatInrRange(absoluteUSD)} (${percentage})`
+              : formatInrRange(absoluteUSD)
             const title = `Level up ${opportunity.skill}`
             return {
               id: opportunity.id || `opportunity-${idx}`,

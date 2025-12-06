@@ -1,8 +1,21 @@
 import { useState, useEffect, createContext, useContext } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { RESUME_CACHE_EVENT, RESUME_CACHE_STORAGE_KEY } from './useResumeContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+// Setup axios interceptor
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('auth_token');
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Create Auth Context
 const AuthContext = createContext(null);
@@ -46,6 +59,7 @@ export const AuthProvider = ({ children }) => {
         setUser(response.data.user);
         setToken(storedToken);
         setIsAuthenticated(true);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
       } else {
         // Token invalid
         logout();
@@ -58,12 +72,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password) => {
+  const register = async (name, email, password, role = 'user') => {
     try {
       const response = await axios.post(`${API_URL}/auth/register`, {
         name,
         email,
-        password
+        password,
+        role
       });
 
       if (response.data.success) {
@@ -94,6 +109,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log('🔐 Attempting login...');
       const response = await axios.post(`${API_URL}/auth/login`, {
         email,
         password
@@ -101,6 +117,9 @@ export const AuthProvider = ({ children }) => {
 
       if (response.data.success) {
         const { user, token, refreshToken } = response.data;
+        
+        console.log('✅ Login successful, storing credentials...');
+        console.log('Token length:', token?.length);
         
         setUser(user);
         setToken(token);
@@ -110,14 +129,18 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('refresh_token', refreshToken);
         localStorage.setItem('user', JSON.stringify(user));
         
+        // Set on axios defaults as backup
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        console.log('✅ Credentials stored, token set in axios');
+        console.log('Stored token:', localStorage.getItem('auth_token')?.substring(0, 20) + '...');
         
         return { success: true, user };
       }
 
       return { success: false, message: response.data.message };
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       return {
         success: false,
         message: error.response?.data?.message || 'Login failed'
@@ -215,8 +238,9 @@ export const useAuth = () => {
 };
 
 // Protected Route Component
-export const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+  const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -230,9 +254,12 @@ export const ProtectedRoute = ({ children }) => {
   }
 
   if (!isAuthenticated) {
-    // Redirect to login
-    window.location.href = '/login';
-    return null;
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (allowedRoles.length && !allowedRoles.includes(user?.role)) {
+    const fallback = user?.role === 'recruiter' ? '/recruiter' : '/dashboard';
+    return <Navigate to={fallback} replace />;
   }
 
   return children;

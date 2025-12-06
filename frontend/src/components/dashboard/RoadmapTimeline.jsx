@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import Card from '../ui/Card'
 
-const RoadmapTimeline = ({ roadmap }) => {
+const RoadmapTimeline = ({ roadmap, skillFocus = [] }) => {
   const [completedGoals, setCompletedGoals] = useState({})
 
   // Load progress from localStorage
@@ -68,6 +68,28 @@ const RoadmapTimeline = ({ roadmap }) => {
     },
   }
 
+  const stageInfo = {
+    foundation: { title: 'Foundation', timeframe: 'Days 1-30' },
+    depth: { title: 'Depth', timeframe: 'Days 31-60' },
+    polish: { title: 'Polish', timeframe: 'Days 61-90' }
+  }
+
+  const stageChipClasses = {
+    foundation: 'bg-blue-50 text-blue-700 border-blue-100',
+    depth: 'bg-green-50 text-green-700 border-green-100',
+    polish: 'bg-purple-50 text-purple-700 border-purple-100'
+  }
+
+  const stageOrder = ['foundation', 'depth', 'polish']
+
+  const totalEstimatedHours = roadmap.estimatedTotalHours || phases.reduce((sum, phase) => sum + (phase.data?.estimatedHours || 0), 0)
+  const weeklyHours = totalEstimatedHours ? Math.round(totalEstimatedHours / 13) : 5
+  const dailyHours = Math.max(1, Math.round(weeklyHours / 5))
+  const skillFocusByStage = stageOrder.map((stageKey) => ({
+    stageKey,
+    skills: skillFocus.filter((s) => s.stageKey === stageKey)
+  }))
+
   return (
     <Card>
       <div className="mb-6">
@@ -90,6 +112,71 @@ const RoadmapTimeline = ({ roadmap }) => {
           ></div>
         </div>
       </div>
+
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Time budget</p>
+          <p className="text-xl font-semibold text-slate-900 mt-1">{totalEstimatedHours ? `${totalEstimatedHours} hrs` : 'Calibrating'}</p>
+          <p className="text-sm text-slate-600">~{weeklyHours} hrs/week • ~{dailyHours} hrs/day</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Goals</p>
+          <p className="text-xl font-semibold text-slate-900 mt-1">{completedCount}/{totalGoals} complete</p>
+          <p className="text-sm text-slate-600">Tap goals to mark done</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Skill focus</p>
+          <div className="flex flex-wrap gap-2 mt-2 text-xs text-slate-700">
+            {skillFocusByStage.map(({ stageKey, skills }) => (
+              <span key={stageKey} className="inline-flex items-center gap-2 rounded-full bg-white border border-slate-200 px-3 py-1">
+                <span className="font-semibold capitalize">{stageKey}</span>
+                <span className="text-slate-500">{skills.length} skills</span>
+              </span>
+            ))}
+            {!skillFocus.length && <span className="text-slate-500">Auto-fills once analysis runs</span>}
+          </div>
+        </div>
+      </div>
+
+      {skillFocus.length > 0 && (
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          {stageOrder.map((stageKey) => {
+            const stageSkills = skillFocus.filter((skill) => skill.stageKey === stageKey)
+            const chipClass = stageChipClasses[stageKey]
+            const info = stageInfo[stageKey]
+            const visibleSkills = stageSkills.slice(0, 4)
+            const extraCount = stageSkills.length - visibleSkills.length
+
+            return (
+              <div key={stageKey} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">{info.timeframe}</p>
+                <h4 className="text-lg font-semibold text-slate-900 mt-1">{info.title} focus</h4>
+                {stageSkills.length ? (
+                  <>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {visibleSkills.map((skill) => (
+                        <span key={`${stageKey}-${skill.skill}`} className={`rounded-full border px-3 py-1 text-xs font-semibold ${chipClass}`}>
+                          {skill.skill}
+                        </span>
+                      ))}
+                      {extraCount > 0 && (
+                        <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${chipClass}`}>
+                          +{extraCount} more
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-3">
+                      Primary reason: {stageSkills[0].reasons?.[0] || 'Role blueprint marked this capability as missing in your resume scan.'}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-500 mt-3">Fully covered for now—keep the cadence going.</p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       <div className="space-y-8">
         {phases.map((phase, phaseIndex) => {

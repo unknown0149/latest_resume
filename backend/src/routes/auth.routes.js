@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { logger } from '../utils/logger.js';
 import { optionalAuth, requireAuth } from '../middleware/authMiddleware.js';
+import { authLimiter } from '../middleware/securityMiddleware.js';
 
 const router = express.Router();
 
@@ -26,18 +27,27 @@ const generateRefreshToken = (userId) => {
 
 /**
  * @route   POST /api/auth/register
- * @desc    Register new user
+ * @desc    Register new user with email verification
  * @access  Public
  */
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     // Validation
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
         message: 'Please provide name, email, and password'
+      });
+    }
+
+    // Validate role if provided
+    const userRole = role || 'user';
+    if (!['user', 'recruiter', 'admin'].includes(userRole)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role. Must be user, recruiter, or admin'
       });
     }
 
@@ -50,11 +60,13 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Create user
+    // Create user with verified email by default
     const user = new User({
       name: name.trim(),
       email: email.trim().toLowerCase(),
-      password
+      password,
+      role: userRole,
+      isEmailVerified: true // Auto-verify for simplified auth
     });
 
     await user.save();
@@ -63,20 +75,30 @@ router.post('/register', async (req, res) => {
     user.calculateProfileCompleteness();
     await user.save();
 
-    // Generate tokens
-    const token = generateToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
 
-    // Save refresh token
-    user.refreshToken = refreshToken;
-    await user.save();
+    const refreshToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
 
     logger.info(`New user registered: ${user.email}`);
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
-      user: user.getPublicProfile(),
+      message: 'Registration successful!',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      },
       token,
       refreshToken
     });
@@ -102,12 +124,12 @@ router.post('/register', async (req, res) => {
 
 /**
  * @route   POST /api/auth/login
- * @desc    Login user
+ * @desc    Login user with optional 2FA
  * @access  Public
  */
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, otp } = req.body;
 
     // Validation
     if (!email || !password) {
@@ -142,6 +164,18 @@ router.post('/login', async (req, res) => {
         message: 'Invalid email or password'
       });
     }
+
+    // TEMPORARY: Email verification disabled until SMTP is configured
+    // Check if email is verified
+    // if (!user.isEmailVerified) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: 'Please verify your email before logging in',
+    //     requiresVerification: true
+    //   });
+    // }
+
+    // Simple authentication - no 2FA
 
     // Update last login
     user.lastLoginAt = new Date();

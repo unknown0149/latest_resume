@@ -7,9 +7,9 @@ import 'dotenv/config';
 import https from 'https';
 
 // Load credentials from .env
-const IBM_API_KEY = process.env.IBM_API_KEY;
-const IBM_PROJECT_ID = process.env.IBM_PROJECT_ID;
-const IBM_MODEL_ID = process.env.IBM_MODEL_ID || 'ibm/granite-3-8b-instruct';
+const IBM_API_KEY = process.env.WATSONX_API_KEY || process.env.IBM_API_KEY;
+const IBM_PROJECT_ID = process.env.WATSONX_PROJECT_ID || process.env.IBM_PROJECT_ID;
+const IBM_MODEL_ID = process.env.WATSONX_MODEL_ID || process.env.IBM_MODEL_ID || 'ibm/granite-3-8b-instruct';
 
 console.log('='.repeat(60));
 console.log('IBM Watson X.ai API Key Verification Test');
@@ -95,13 +95,56 @@ const testWatsonAPI = (iamToken) => {
   console.log('📋 Question 3: Can we connect to IBM Watson X.ai API?');
   console.log('-'.repeat(60));
 
-  const testPrompt = 'Hello! Please respond with "API is working" if you can read this message.';
+  const questions = [
+    {
+      question: 'What is your name and version?',
+      purpose: 'Testing basic identity response'
+    },
+    {
+      question: 'What are the top 3 skills needed for a Full Stack Developer role?',
+      purpose: 'Testing job-related skill analysis'
+    },
+    {
+      question: 'Given this resume data: {"name": "John Doe", "skills": ["JavaScript", "React", "Node.js"], "experience": 3}, what job roles would you recommend?',
+      purpose: 'Testing resume analysis capability'
+    },
+    {
+      question: 'Generate 2 technical interview questions for a React developer position.',
+      purpose: 'Testing interview question generation'
+    },
+    {
+      question: 'Summarize in one sentence: A software engineer with 5 years experience in cloud computing, proficient in AWS, Azure, and Docker.',
+      purpose: 'Testing summarization capability'
+    }
+  ];
+
+  let currentQuestionIndex = 0;
+
+  const askQuestion = () => {
+    if (currentQuestionIndex >= questions.length) {
+      console.log();
+      console.log('='.repeat(60));
+      console.log('✅ ALL QUESTIONS COMPLETED!');
+      console.log('IBM Watson X.ai is ready for production use');
+      console.log('='.repeat(60));
+      return;
+    }
+
+    const { question, purpose } = questions[currentQuestionIndex];
+    
+    console.log();
+    console.log(`🤔 Question ${currentQuestionIndex + 1}/${questions.length}:`);
+    console.log(`   Purpose: ${purpose}`);
+    console.log(`   Asking: "${question}"`);
+    console.log();
+
+    const testPrompt = question;
 
   const requestData = JSON.stringify({
     input: testPrompt,
     parameters: {
-      max_new_tokens: 50,
-      temperature: 0.1,
+      max_new_tokens: 200,
+      temperature: 0.3,
       return_options: {
         input_text: false
       }
@@ -122,11 +165,6 @@ const testWatsonAPI = (iamToken) => {
     }
   };
 
-  console.log('Sending test request...');
-  console.log(`Endpoint: https://${options.hostname}${options.path}`);
-  console.log(`Model: ${IBM_MODEL_ID}`);
-  console.log();
-
   const req = https.request(options, (res) => {
     let data = '';
 
@@ -135,80 +173,55 @@ const testWatsonAPI = (iamToken) => {
     });
 
     res.on('end', () => {
-      console.log(`Response Status Code: ${res.statusCode}`);
-      console.log();
-
       if (res.statusCode === 200) {
         try {
           const response = JSON.parse(data);
           
-          console.log('✅ SUCCESS: Watson X.ai API is working!');
-          console.log();
-          console.log('📋 Question 4: What did the AI respond?');
-          console.log('-'.repeat(60));
-          
           if (response.results && response.results.length > 0) {
             const generatedText = response.results[0].generated_text;
-            console.log('AI Response:', generatedText);
-            console.log();
-            console.log('Token Usage:');
-            console.log(`  - Input tokens: ${response.results[0].input_token_count || 'N/A'}`);
-            console.log(`  - Generated tokens: ${response.results[0].generated_token_count || 'N/A'}`);
-            console.log();
-            console.log('Model Info:');
-            console.log(`  - Model ID: ${response.model_id || 'N/A'}`);
-            console.log(`  - Created At: ${response.created_at || 'N/A'}`);
+            console.log('   ✅ Watson Response:');
+            console.log('   ' + '-'.repeat(58));
+            console.log('   ' + generatedText.trim().split('\n').join('\n   '));
+            console.log('   ' + '-'.repeat(58));
+            console.log(`   Tokens used: ${response.results[0].generated_token_count || 'N/A'}`);
+            
+            // Move to next question
+            currentQuestionIndex++;
+            setTimeout(() => askQuestion(), 1000); // Wait 1 second between questions
           } else {
-            console.log('⚠️ WARNING: Response received but no results found');
-            console.log('Full response:', JSON.stringify(response, null, 2));
+            console.log('   ⚠️ WARNING: No results in response');
+            currentQuestionIndex++;
+            setTimeout(() => askQuestion(), 1000);
           }
-          
-          console.log();
-          console.log('='.repeat(60));
-          console.log('✅ ALL TESTS PASSED!');
-          console.log('IBM Watson X.ai API is ready for Phase 2 implementation');
-          console.log('='.repeat(60));
           
         } catch (error) {
-          console.error('❌ ERROR: Failed to parse API response');
-          console.error('Error:', error.message);
-          console.error('Raw response:', data);
+          console.error('   ❌ ERROR: Failed to parse response');
+          console.error('   ', error.message);
+          currentQuestionIndex++;
+          setTimeout(() => askQuestion(), 1000);
         }
       } else {
-        console.error(`❌ ERROR: Watson API request failed with status ${res.statusCode}`);
-        console.error('Response:', data);
-        
-        try {
-          const errorResponse = JSON.parse(data);
-          if (errorResponse.errors) {
-            console.error('Error details:', JSON.stringify(errorResponse.errors, null, 2));
-          }
-        } catch (e) {
-          // Response is not JSON
-        }
-        
-        console.log();
-        console.log('Troubleshooting:');
-        console.log('1. Verify project ID is correct');
-        console.log('2. Check IBM Cloud account status and billing');
-        console.log('3. Ensure model ID is available: ' + IBM_MODEL_ID);
-        console.log('4. Verify IAM token has proper permissions');
+        console.error(`   ❌ ERROR: Request failed with status ${res.statusCode}`);
+        console.error('   Response:', data);
+        currentQuestionIndex++;
+        setTimeout(() => askQuestion(), 1000);
       }
     });
   });
 
   req.on('error', (error) => {
-    console.error('❌ ERROR: Network request failed');
-    console.error('Error:', error.message);
-    console.log();
-    console.log('Troubleshooting:');
-    console.log('1. Check your internet connection');
-    console.log('2. Verify firewall is not blocking the request');
-    console.log('3. Check if IBM Watson endpoint is accessible');
+    console.error('   ❌ ERROR: Network request failed');
+    console.error('   ', error.message);
+    currentQuestionIndex++;
+    setTimeout(() => askQuestion(), 1000);
   });
 
   req.write(requestData);
   req.end();
+};
+
+// Start asking questions
+askQuestion();
 };
 
 // Run the test

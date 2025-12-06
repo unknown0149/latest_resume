@@ -226,3 +226,33 @@ Potential for sensitive data in logs
 **Medium: 5**
 **Low/Tech Debt: 25**
 
+---
+
+## 📋 What a Production-Grade Resume Intelligence Platform Should Include
+
+1. **Robust Ingestion Experience** – guided upload wizard, drag-and-drop, OCR fallback, duplicate detection, progress feedback, and resumable uploads.
+2. **Skill Intelligence Layer** – canonical skill dictionary, proficiency scoring, badge decay, verification ledger with timestamps, and recruiter-facing proof of skill.
+3. **Explainable Job/Role Matching** – transparent scoring weights, slider controls, saved searches, multi-market job sources, and export/share actions.
+4. **Learning & Coaching Loop** – quizzes/interviews tied to one verification data store, streak tracking, AI coaching tips, certificates, and personalized reminders.
+5. **End-to-End User Journey** – onboarding checklist, profile completeness meter, notification center (email/web/push), and consented data-sharing options.
+6. **Employer / Recruiter Workspace** – talent search, shortlist management, interview scheduling, anonymized resume sharing, and collaboration notes.
+7. **Trust, Security & Compliance** – PII scrubbing, consent logs, audit trails, SOC2-ready logging, configurable data retention, and secrets management.
+8. **Observability & Operations** – `/health` + dependency checks, metrics/alerts, feature flags, queue monitoring, and automated rollbacks.
+9. **Documentation & Governance** – architecture diagrams, API references, setup guides, coding standards, security runbooks, and CI policies.
+
+---
+
+## ⚠️ Capabilities Missing or Partial in This Repository
+
+- **Onboarding & Checklist UI** – React app (`frontend/src/pages`) jumps directly to dashboards with no guided flow or completeness meter.
+- **Unified Verification Ledger UI** – backend stores `profile.skillVerifications`, but there is no dedicated page that shows history, badge decay, or cross-device sync.
+- **Recruiter / Employer Portal** – models such as `Analytics` and `InterviewSession` exist, yet no routes, services, or frontend pages expose recruiting features.
+- **Notification System** – no service for in-app, email, or push notifications; `Notification.js` model is unused.
+- **Observability** – missing `/api/health`, structured metrics, tracing, or alert hooks; Winston logs are not shipped anywhere.
+- **Security Middleware** – express-validator, helmet, rate limiting, and secrets validation are mostly absent beyond the fixes listed above.
+- **Automated Testing & CI** – integration tests require manual setup and are not wired into any GitHub Actions/CI pipeline.
+- **Documentation** – README lacks deployment steps, architecture overview, or feature descriptions despite the new `.env.template` files.
+- **Advanced User Features** – no saved jobs, resume builder/editor, cover-letter generation, or collaboration/sharing workflows.
+
+These gaps should be tracked alongside the bug list so that the platform roadmap covers both stability (issues above) and product completeness (items in this section).
+

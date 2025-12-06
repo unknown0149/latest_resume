@@ -6,6 +6,7 @@ import { extractText, parseResume, quickParse, deepParse } from '../services/res
 import { predictBestRole, analyzeSkills, generateSalaryBoostRecommendations, alignSkillsWithCareerAdvice } from '../services/intelligentJobMatchingService.js'
 import { generateRoadmap } from '../services/roadmapService.js'
 import { generateResumeSummaryWithWatson } from '../services/watsonResumeSummaryService.js'
+import { trackUsage } from '../services/subscriptionService.js'
 import Resume from '../models/Resume.js'
 import { logger, createLogger } from '../utils/logger.js'
 import { queueResumeEmbedding } from '../services/embeddingQueueService.js'
@@ -58,6 +59,49 @@ function validatePageCount(pages, maxPages) {
 const router = express.Router()
 
 /**
+ * GET /api/resume
+ * Get all resumes for the authenticated user
+ */
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.userId
+
+    if (!userId) {
+      return res.status(400).json({
+        error: 'Bad request',
+        message: 'User ID not found',
+        statusCode: 400,
+      })
+    }
+
+    const resumes = await Resume.find({ userId })
+      .select('resumeId file_metadata parsed_resume.name parsed_resume.skills job_analysis.predictedRole createdAt')
+      .sort({ createdAt: -1 })
+      .limit(10)
+
+    res.json({
+      success: true,
+      count: resumes.length,
+      resumes: resumes.map(resume => ({
+        resumeId: resume.resumeId,
+        name: resume.parsed_resume?.name || 'Unnamed Resume',
+        skillCount: resume.parsed_resume?.skills?.length || 0,
+        predictedRole: resume.job_analysis?.predictedRole?.name || null,
+        uploadedAt: resume.createdAt,
+        fileName: resume.file_metadata?.originalName || 'Unknown'
+      }))
+    })
+  } catch (error) {
+    logger.error(`Get resumes error: ${error.message}`)
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to retrieve resumes',
+      statusCode: 500,
+    })
+  }
+})
+
+/**
  * POST /api/resume/upload
  * Upload and extract text from resume file
  */
@@ -81,9 +125,9 @@ router.post(
       }
 
       const { file } = req
-      const resumeId = uuidv4()
+      const userObjectId = req.user?._id || req.user?.userId || null
       
-      requestLogger.info(`Processing resume upload: ${file.originalname}`, { resumeId })
+      requestLogger.info(`Processing resume upload: ${file.originalname}`)
 
       // Extract text from file
       const extractionResult = await extractText(file)
@@ -132,22 +176,76 @@ router.post(
         extraction_status = 'completed' // Still completed, but with warning
       }
 
-      // Save to database
-      const resume = new Resume({
-        resumeId,
-        userId: req.user?.userId || null, // Optional for Phase 1
-        raw_text: extractionResult.raw_text,
-        file_metadata,
-        extraction_status,
-        ocr_needed: extractionResult.ocrNeeded,
-        extraction_confidence: extractionResult.extractionConfidence,
-        errorMessage: extractionResult.message || null,
-        filePath: file.path,
-      })
+      // If user already has an active resume, version it instead of creating a new resumeId
+      let resume = null
+      let resumeId
+      if (userObjectId) {
+        resume = await Resume.findOne({ userId: userObjectId, isActive: true })
+      }
 
-      await resume.save()
+      if (resume) {
+        resumeId = resume.resumeId
+        // Push current snapshot to history before overwriting
+        resume.previousVersions = resume.previousVersions || []
+        resume.previousVersions.push({
+          versionNumber: resume.version || 1,
+          uploadedAt: resume.file_metadata?.uploadedAt || new Date(),
+          filePath: resume.filePath,
+          parsed_resume: resume.parsed_resume,
+          file_metadata: resume.file_metadata,
+        })
 
-      requestLogger.info(`Resume saved successfully`, { resumeId })
+        resume.version = (resume.version || 1) + 1
+        resume.raw_text = extractionResult.raw_text
+        resume.file_metadata = file_metadata
+        resume.extraction_status = extraction_status
+        resume.ocr_needed = extractionResult.ocrNeeded
+        resume.extraction_confidence = extractionResult.extractionConfidence
+        resume.errorMessage = extractionResult.message || null
+        resume.filePath = file.path
+        resume.privacy = resume.privacy || {
+          visibleToRecruiters: false,
+          openToWork: false,
+          lastUpdated: new Date(),
+        }
+        resume.privacy.lastUpdated = new Date()
+
+        await resume.save()
+        requestLogger.info(`Resume updated with new version`, { resumeId: resume.resumeId, version: resume.version })
+      } else {
+        resumeId = uuidv4()
+        resume = new Resume({
+          resumeId,
+          userId: userObjectId,
+          raw_text: extractionResult.raw_text,
+          file_metadata,
+          extraction_status,
+          ocr_needed: extractionResult.ocrNeeded,
+          extraction_confidence: extractionResult.extractionConfidence,
+          errorMessage: extractionResult.message || null,
+          filePath: file.path,
+          version: 1,
+          previousVersions: [],
+          // Initialize privacy settings with secure defaults
+          privacy: {
+            visibleToRecruiters: false, // Private by default
+            openToWork: false,
+            lastUpdated: new Date(),
+          },
+        })
+
+        await resume.save()
+        requestLogger.info(`Resume saved successfully`, { resumeId })
+      }
+      
+      // Track usage for subscription limits
+      if (req.user && req.user._id) {
+        try {
+          await trackUsage(req.user._id, 'resumesUploaded');
+        } catch (err) {
+          requestLogger.warn('Failed to track resume upload usage', err);
+        }
+      }
 
       // Prepare response
       const response = {
@@ -206,7 +304,7 @@ router.get('/:resumeId', authenticateToken, async (req, res) => {
       })
     }
 
-    // Return resume data
+    // Return resume data with analysis
     res.json({
       resumeId: resume.resumeId,
       raw_text: resume.raw_text,
@@ -214,6 +312,8 @@ router.get('/:resumeId', authenticateToken, async (req, res) => {
       extraction_status: resume.extraction_status,
       ocr_needed: resume.ocr_needed,
       extraction_confidence: resume.extraction_confidence,
+      parsed_resume: resume.parsed_resume,
+      job_analysis: resume.job_analysis,
       createdAt: resume.createdAt,
     })
   } catch (error) {
@@ -375,12 +475,12 @@ router.post('/:resumeId/parse', async (req, res) => {
  * GET /api/resume/:resumeId/parsed
  * Retrieve parsed resume data
  */
-router.get('/:resumeId/parsed', async (req, res) => {
+router.get('/:resumeId/parsed', authenticateToken, async (req, res) => {
   try {
     const { resumeId } = req.params
 
     const resume = await Resume.findOne({ resumeId }).select(
-      'resumeId parsed_resume extraction_metadata'
+      'resumeId userId parsed_resume extraction_metadata parsed_data job_analysis profile privacy'
     )
 
     if (!resume) {
@@ -399,10 +499,27 @@ router.get('/:resumeId/parsed', async (req, res) => {
       })
     }
 
+    // Allow access if user is owner, admin, or recruiter WITH opt-in privacy
+    const isOwner = req.user && resume.userId && resume.userId.toString() === req.user._id.toString()
+    const isAdmin = req.user && req.user.role === 'admin'
+    const recruiterOptIn = req.user && req.user.role === 'recruiter' && resume.privacy?.visibleToRecruiters
+    
+    if (!isOwner && !isAdmin && !recruiterOptIn) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'You do not have permission to view this resume',
+        statusCode: 403,
+      })
+    }
+
     res.json({
       resumeId,
       parsed_resume: resume.parsed_resume,
       metadata: resume.extraction_metadata,
+      parsed_data: resume.parsed_data,
+      job_analysis: resume.job_analysis,
+      profile: resume.profile,
+      privacy: resume.privacy, // Include privacy settings for owner
     })
   } catch (error) {
     logger.error(`Get parsed resume error: ${error.message}`)
@@ -483,6 +600,42 @@ router.post('/:resumeId/analyze-role', async (req, res) => {
     // Step 6: Generate resources for top missing skills
     const topMissingSkills = skillAnalysis.skillsMissing.slice(0, 3).map(s => s.skill)
     const resources = topMissingSkills.length > 0 ? generateFallbackResources(topMissingSkills) : []
+
+    // Save analysis results to database
+    resume.job_analysis = {
+      predictedRole: {
+        name: rolePrediction.primaryRole.name,
+        matchScore: rolePrediction.primaryRole.matchScore,
+        confidence: rolePrediction.primaryRole.confidence,
+        reasoning: rolePrediction.primaryRole.reasoning
+      },
+      alternativeRoles: rolePrediction.alternativeRoles.map(role => ({
+        name: role.name,
+        matchScore: role.matchScore,
+        reason: role.reason
+      })),
+      skillsHave: skillAnalysis.skillsHave.map(skill => ({
+        skill: skill.skill,
+        type: skill.type,
+        level: skill.level,
+        proficiency: skill.proficiency,
+        verified: skill.verified
+      })),
+      skillsMissing: skillAnalysis.skillsMissing.map(skill => ({
+        skill: skill.skill,
+        type: skill.type,
+        priority: skill.priority,
+        reasons: skill.reasons,
+        salaryBoost: skill.salaryBoost
+      })),
+      salaryBoostOpportunities: skillAnalysis.salaryBoostOpportunities || [],
+      tagline: watsonSummary?.tagline || '',
+      strengths: watsonSummary?.key_strengths || [],
+      analyzedAt: new Date()
+    }
+
+    await resume.save()
+    requestLogger.info(`Saved analysis results for resume ${resumeId}`)
 
     // Return comprehensive analysis
     requestLogger.info(`Role analysis complete for resume ${resumeId}`)
@@ -702,6 +855,74 @@ router.patch(
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to update profile',
+        statusCode: 500,
+      })
+    }
+  }
+)
+
+/**
+ * PATCH /api/resume/:resumeId/privacy
+ * Update resume privacy settings
+ */
+router.patch(
+  '/:resumeId/privacy',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { resumeId } = req.params
+      const { visibleToRecruiters, openToWork } = req.body
+
+      // Find resume and verify ownership
+      const resume = await Resume.findOne({ resumeId, isActive: true })
+      if (!resume) {
+        return res.status(404).json({
+          error: 'Resume not found',
+          statusCode: 404,
+        })
+      }
+
+      // Verify user owns this resume
+      if (req.user?._id && resume.userId && resume.userId.toString() !== req.user._id.toString()) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'You can only update privacy settings for your own resume',
+          statusCode: 403,
+        })
+      }
+
+      // Initialize privacy if doesn't exist
+      if (!resume.privacy) {
+        resume.privacy = {
+          visibleToRecruiters: false,
+          openToWork: false,
+          lastUpdated: new Date()
+        }
+      }
+
+      // Update privacy fields
+      if (visibleToRecruiters !== undefined) {
+        resume.privacy.visibleToRecruiters = Boolean(visibleToRecruiters)
+      }
+      if (openToWork !== undefined) {
+        resume.privacy.openToWork = Boolean(openToWork)
+      }
+      resume.privacy.lastUpdated = new Date()
+
+      await resume.save()
+
+      logger.info(`Privacy settings updated for resume ${resumeId}: visibleToRecruiters=${resume.privacy.visibleToRecruiters}, openToWork=${resume.privacy.openToWork}`)
+
+      res.json({
+        success: true,
+        privacy: resume.privacy,
+        message: 'Privacy settings updated successfully',
+      })
+    } catch (error) {
+      logger.error(`Update privacy settings error: ${error.message}`)
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'Failed to update privacy settings',
         statusCode: 500,
       })
     }

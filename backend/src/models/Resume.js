@@ -19,6 +19,39 @@ const resumeSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    // Version control for resume history
+    version: {
+      type: Number,
+      default: 1,
+    },
+    previousVersions: [{
+      versionNumber: Number,
+      uploadedAt: Date,
+      filePath: String,
+      parsed_resume: mongoose.Schema.Types.Mixed,
+      file_metadata: {
+        filename: String,
+        originalName: String,
+        mimeType: String,
+        sizeBytes: Number,
+      }
+    }],
+    // Privacy settings - controls recruiter visibility
+    privacy: {
+      visibleToRecruiters: {
+        type: Boolean,
+        default: false, // Opt-in only - users must explicitly enable
+        index: true,
+      },
+      openToWork: {
+        type: Boolean,
+        default: false,
+      },
+      lastUpdated: {
+        type: Date,
+        default: Date.now,
+      },
+    },
     raw_text: {
       type: String,
       required: true,

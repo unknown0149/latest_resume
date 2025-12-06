@@ -62,9 +62,9 @@ const SkillsPanel = ({ skillsHave = [], skillsMissing = [], onVerifyClick }) => 
 
   const getPriorityBadge = (priority) => {
     const badges = {
-      1: 'bg-[#1d1d1f] text-white border border-[#0f0f11]',
-      2: 'bg-[#f7f7f8] text-[#1d1d1f] border border-[#d4d4d8]',
-      3: 'bg-transparent text-[#52525b] border border-dashed border-[#d4d4d8]'
+      1: 'bg-[var(--rg-accent)] text-white border border-[var(--rg-accent)]',
+      2: 'bg-[var(--rg-bg-muted)] text-[var(--rg-text-primary)] border border-[var(--rg-border)]',
+      3: 'bg-transparent text-[var(--rg-text-secondary)] border border-dashed border-[var(--rg-border)]'
     }
     return badges[priority] || badges[2]
   }
@@ -73,14 +73,14 @@ const SkillsPanel = ({ skillsHave = [], skillsMissing = [], onVerifyClick }) => 
     <Card tone="light" className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
-          <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Skill Intelligence</p>
-          <h2 className="text-2xl font-semibold text-slate-900 mt-2">Your Skills</h2>
+          <p className="text-xs uppercase tracking-[0.35em] text-[var(--rg-text-secondary)]">Skill Intelligence</p>
+          <h2 className="text-2xl font-semibold text-[var(--rg-text-primary)] mt-2">Your Skills</h2>
         </div>
-        <div className="flex gap-2 rounded-full border border-slate-200 bg-slate-50 p-1">
+        <div className="flex gap-2 rounded-full border border-[var(--rg-border)] bg-[var(--rg-bg-muted)] p-1">
           <button
             onClick={() => setActiveTab('have')}
             className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-              activeTab === 'have' ? 'bg-white text-slate-900 shadow-[0_8px_20px_rgba(15,23,42,0.08)]' : 'text-slate-500'
+              activeTab === 'have' ? 'bg-[var(--rg-surface)] text-[var(--rg-text-primary)] shadow-[0_8px_20px_rgba(15,18,25,0.08)]' : 'text-[var(--rg-text-secondary)]'
             }`}
           >
             Have ({skillsHave.length})
@@ -88,7 +88,7 @@ const SkillsPanel = ({ skillsHave = [], skillsMissing = [], onVerifyClick }) => 
           <button
             onClick={() => setActiveTab('missing')}
             className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-              activeTab === 'missing' ? 'bg-white text-slate-900 shadow-[0_8px_20px_rgba(15,23,42,0.08)]' : 'text-slate-500'
+              activeTab === 'missing' ? 'bg-[var(--rg-surface)] text-[var(--rg-text-primary)] shadow-[0_8px_20px_rgba(15,18,25,0.08)]' : 'text-[var(--rg-text-secondary)]'
             }`}
           >
             To Learn ({skillsMissing.length})
@@ -99,7 +99,7 @@ const SkillsPanel = ({ skillsHave = [], skillsMissing = [], onVerifyClick }) => 
       {activeTab === 'have' && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           {skillsHave.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-[var(--rg-text-secondary)]">
               <AlertCircle className="w-12 h-12 mx-auto mb-3" />
               <p>No skills extracted yet</p>
             </div>
@@ -115,26 +115,26 @@ const SkillsPanel = ({ skillsHave = [], skillsMissing = [], onVerifyClick }) => 
               return (
                 <div
                   key={`${skill}-${idx}`}
-                  className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition-colors"
+                  className="rounded-2xl border border-[var(--rg-border)] bg-[var(--rg-surface)] p-4 hover:border-[var(--rg-border-strong)] transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg font-semibold text-slate-900">{skill}</h3>
+                        <h3 className="text-lg font-semibold text-[var(--rg-text-primary)]">{skill}</h3>
                         {verified && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--rg-border)] bg-[var(--rg-bg-muted)] px-2 py-1 text-xs text-[var(--rg-text-primary)]">
                             <CheckCircle className="w-3 h-3" />
                             Verified
                           </span>
                         )}
                         {badgeLevel && badgeLevel !== 'none' && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--rg-border)] bg-transparent px-2 py-1 text-xs text-[var(--rg-text-secondary)]">
                             <Award className="w-3 h-3" />
                             {badgeLabel || badgeLevel}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-slate-500">{skillObj.level || getProficiencyLabel(proficiency)}</p>
+                      <p className="text-sm text-[var(--rg-text-secondary)]">{skillObj.level || getProficiencyLabel(proficiency)}</p>
                     </div>
                     <Button size="sm" variant={verified ? 'outline' : 'primary'} onClick={() => onVerifyClick?.(skill)}>
                       <Award className="w-4 h-4 mr-1" />
@@ -142,16 +142,16 @@ const SkillsPanel = ({ skillsHave = [], skillsMissing = [], onVerifyClick }) => 
                     </Button>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm text-slate-500">
+                    <div className="flex items-center justify-between text-sm text-[var(--rg-text-secondary)]">
                       <span>Proficiency</span>
-                      <span className="font-semibold text-slate-900">{proficiency}%</span>
+                      <span className="font-semibold text-[var(--rg-text-primary)]">{proficiency}%</span>
                     </div>
-                    <div className="h-2 rounded-full bg-slate-100">
+                    <div className="h-2 rounded-full bg-[var(--rg-bg-muted)]">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${proficiency}%` }}
                         transition={{ duration: 0.7, delay: idx * 0.05 }}
-                        className="h-full rounded-full bg-[#0f7a74]"
+                        className="h-full rounded-full bg-[var(--rg-accent)]"
                       />
                     </div>
                   </div>
@@ -165,10 +165,10 @@ const SkillsPanel = ({ skillsHave = [], skillsMissing = [], onVerifyClick }) => 
       {activeTab === 'missing' && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           {skillsMissing.length === 0 ? (
-            <div className="text-center py-12 text-emerald-600">
+            <div className="text-center py-12 text-[var(--rg-text-secondary)]">
               <CheckCircle className="w-12 h-12 mx-auto mb-3" />
               <p>No skill gaps identified</p>
-              <p className="text-sm text-slate-500 mt-2">You're well-equipped for your target role!</p>
+              <p className="text-sm text-[var(--rg-text-secondary)] mt-2">You're well-equipped for your target role!</p>
             </div>
           ) : (
             skillsMissing.map((skillObj, idx) => {
@@ -181,25 +181,25 @@ const SkillsPanel = ({ skillsHave = [], skillsMissing = [], onVerifyClick }) => 
               return (
                 <div
                   key={`${skill}-missing-${idx}`}
-                  className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition-colors"
+                  className="rounded-2xl border border-[var(--rg-border)] bg-[var(--rg-surface)] p-4 hover:border-[var(--rg-border-strong)] transition-colors"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <h3 className="text-lg font-semibold text-slate-900">{skill}</h3>
+                        <h3 className="text-lg font-semibold text-[var(--rg-text-primary)]">{skill}</h3>
                         <span className={`rounded-full px-2 py-1 text-xs font-semibold ${getPriorityBadge(priority)}`}>
                           {priority === 1 ? 'High' : priority === 3 ? 'Low' : 'Medium'} Priority
                         </span>
-                        <span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-500 capitalize">{type}</span>
+                        <span className="rounded-full bg-[var(--rg-bg-muted)] px-2 py-1 text-xs text-[var(--rg-text-secondary)] capitalize">{type}</span>
                       </div>
                       {skillObj.salaryBoost && (
-                        <div className="flex items-center gap-1 text-sm text-slate-600">
-                          <TrendingUp className="w-4 h-4 text-[#0f7a74]" />
+                        <div className="flex items-center gap-1 text-sm text-[var(--rg-text-secondary)]">
+                          <TrendingUp className="w-4 h-4 text-[var(--rg-accent)]" />
                           <span>+{boostLabel} potential salary boost</span>
                         </div>
                       )}
                     </div>
-                    <XCircle className="w-5 h-5 text-slate-300" />
+                    <XCircle className="w-5 h-5 text-[var(--rg-border)]" />
                   </div>
                 </div>
               )
@@ -208,22 +208,22 @@ const SkillsPanel = ({ skillsHave = [], skillsMissing = [], onVerifyClick }) => 
         </motion.div>
       )}
 
-      <div className="mt-8 grid grid-cols-3 gap-4 border-t border-slate-200 pt-6 text-center">
+      <div className="mt-8 grid grid-cols-3 gap-4 border-t border-[var(--rg-border)] pt-6 text-center">
         <div>
-          <p className="text-3xl font-semibold text-slate-900">{skillsHave.length}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.3em] text-slate-500">Skills Owned</p>
+          <p className="text-3xl font-semibold text-[var(--rg-text-primary)]">{skillsHave.length}</p>
+          <p className="mt-1 text-xs uppercase tracking-[0.3em] text-[var(--rg-text-secondary)]">Skills Owned</p>
         </div>
         <div>
-          <p className="text-3xl font-semibold text-slate-900">{skillsMissing.length}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.3em] text-slate-500">To Learn</p>
+          <p className="text-3xl font-semibold text-[var(--rg-text-primary)]">{skillsMissing.length}</p>
+          <p className="mt-1 text-xs uppercase tracking-[0.3em] text-[var(--rg-text-secondary)]">To Learn</p>
         </div>
         <div>
-          <p className="text-3xl font-semibold text-slate-900">
+          <p className="text-3xl font-semibold text-[var(--rg-text-primary)]">
             {skillsHave.length > 0
               ? Math.round((skillsHave.length / (skillsHave.length + skillsMissing.length)) * 100)
               : 0}%
           </p>
-          <p className="mt-1 text-xs uppercase tracking-[0.3em] text-slate-500">Skill Match</p>
+          <p className="mt-1 text-xs uppercase tracking-[0.3em] text-[var(--rg-text-secondary)]">Skill Match</p>
         </div>
       </div>
     </Card>

@@ -77,7 +77,7 @@ function calculateSkillPriority(skill, roleData, salaryBoostData) {
  * @param {Array} verifiedSkills - Array of verified skill objects
  * @returns {Object|null} - Verification data if found, null otherwise
  */
-function findVerifiedSkill(skill, verifiedSkills = []) {
+export function findVerifiedSkill(skill, verifiedSkills = []) {
   if (!Array.isArray(verifiedSkills) || verifiedSkills.length === 0) {
     return null;
   }
@@ -395,4 +395,5 @@ export async function quickSkillGap(userSkills, targetRoleName) {
 export default {
   analyzeSkills,
   quickSkillGap,
+  findVerifiedSkill,
 };

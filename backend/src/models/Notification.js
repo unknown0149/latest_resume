@@ -24,15 +24,21 @@ const notificationSchema = new mongoose.Schema(
     type: {
       type: String,
       enum: [
-        'job_match',           // New job matches your resume
-        'interview_scheduled',  // Interview verification scheduled
-        'interview_completed',  // Interview results available
-        'badge_earned',        // Verification badge earned/upgraded
-        'skill_verified',      // Skill successfully verified
-        'resume_processed',    // Resume parsing completed
-        'job_applied',         // Job application confirmed
-        'roadmap_ready',       // Learning roadmap generated
-        'system_alert',        // System announcements
+        'quiz_completed',
+        'interview_completed',
+        'interview_scheduled',
+        'application_status',
+        'offer_received',
+        'skill_verified',
+        'job_match',
+        'job_applied',
+        'profile_incomplete',
+        'resume_parsed',
+        'resume_processed',
+        'badge_earned',
+        'reminder',
+        'system',
+        'system_alert',
       ],
       required: true,
       index: true,

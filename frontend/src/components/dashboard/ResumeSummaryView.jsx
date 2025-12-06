@@ -1,12 +1,11 @@
-import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Brain, TrendingUp, Target, CheckCircle2, AlertCircle } from 'lucide-react'
-import Card from '../ui/Card'
+import { Mail, Phone, MapPin, Briefcase, GraduationCap, Brain, TrendingUp, Target, CheckCircle2, AlertCircle, Sparkles, ShieldCheck } from 'lucide-react'
 
-const ResumeSummaryView = ({ resume, watsonSummary }) => {
+const ResumeSummaryView = ({ resume, watsonSummary, skills: providedSkills }) => {
   if (!resume) {
     return (
-      <Card>
-        <p className="text-center text-gray-500 py-8">No resume data available. Please upload and parse your resume first.</p>
-      </Card>
+      <div className="card-base rounded-[32px] p-8">
+        <p className="text-center text-[var(--rg-text-secondary)] py-8">No resume data available. Please upload and parse your resume first.</p>
+      </div>
     )
   }
 
@@ -19,52 +18,116 @@ const ResumeSummaryView = ({ resume, watsonSummary }) => {
   const summary = resumeData.summary || resumeData.professional_summary || null
   const experience = resumeData.experience || resumeData.work_experience || []
   const education = resumeData.education || []
-  const skills = resumeData.skills || resumeData.technical_skills || []
+  const resumeSkills = resumeData.skills || resumeData.technical_skills || []
+  const skillSource = Array.isArray(providedSkills) && providedSkills.length ? providedSkills : resumeSkills
+  const normalizedSkills = Array.isArray(skillSource)
+    ? skillSource
+        .map((skill, idx) => {
+          if (typeof skill === 'string') return skill
+          if (skill?.name) return skill.name
+          if (skill?.skill) return skill.skill
+          if (skill?.title) return skill.title
+          return `Skill ${idx + 1}`
+        })
+        .filter(Boolean)
+    : []
+
+  const decoratedSkills = (() => {
+    const source = Array.isArray(providedSkills) && providedSkills.length ? providedSkills : normalizedSkills
+    return source
+      .map((skill, idx) => {
+        if (typeof skill === 'string') {
+          return { label: skill, verified: false, score: null }
+        }
+        const label = skill.skill || skill.name || skill.title || skill.label || (typeof skill === 'string' ? skill : null) || `Skill ${idx + 1}`
+        if (!label) {
+          return null
+        }
+        const scoreValue = skill.score ?? skill.proficiency ?? skill.level ?? null
+        return {
+          label,
+          verified: Boolean(skill.verified) || (skill.verificationScore || 0) >= 70,
+          score: typeof scoreValue === 'number' ? Math.round(scoreValue) : null,
+        }
+      })
+      .filter(Boolean)
+  })()
+
+  const verifiedSkillCount = decoratedSkills.filter((skill) => skill.verified).length
+  const experienceEntries = Array.isArray(experience) ? experience : []
+  const educationEntries = Array.isArray(education) ? education : []
+  const recentRole = experienceEntries[0] || null
+  const topEducation = educationEntries[0] || null
+  const totalExperienceYears = resumeData.years_experience || resumeData.total_years_experience || null
+  const primaryTitle = resumeData.current_title || resumeData.headline || resumeData.job_title || 'Role focus pending'
+
+  const quickStats = [
+    {
+      label: 'Experience',
+      value: totalExperienceYears ? `${totalExperienceYears}+ yrs` : experienceEntries.length ? `${experienceEntries.length} roles` : '—',
+      hint: totalExperienceYears ? 'Career span' : 'Roles tracked'
+    },
+    {
+      label: 'Verified skills',
+      value: decoratedSkills.length ? `${verifiedSkillCount}/${decoratedSkills.length}` : '0',
+      hint: 'Badges at 70%+'
+    },
+    {
+      label: 'Latest role',
+      value: recentRole?.position || recentRole?.title || recentRole?.role || '—',
+      hint: recentRole?.company || recentRole?.organization || ''
+    },
+    {
+      label: 'Top education',
+      value: topEducation?.degree || topEducation?.qualification || topEducation?.school || '—',
+      hint: topEducation?.year || topEducation?.graduation_year || ''
+    }
+  ]
 
   return (
     <div className="space-y-6">
       {/* Watson AI Summary - NEW */}
       {watsonSummary && watsonSummary.summary && (
-        <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50">
+        <div className="card-base rounded-[32px] p-8">
           <div className="flex items-center gap-2 mb-4">
-            <Brain className="w-6 h-6 text-purple-600" />
-            <h3 className="text-lg font-semibold text-gray-900">AI-Powered Career Analysis</h3>
-            <span className="ml-auto text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-              {watsonSummary.source === 'watson' ? 'Watson X.ai' : 'Analysis'}
+            <Brain className="w-6 h-6 text-[var(--rg-accent)]" />
+            <h3 className="text-lg font-semibold text-[var(--rg-text-primary)]">AI-Powered Career Analysis</h3>
+            <span className="ml-auto text-xs bg-[var(--rg-bg-muted)] text-[var(--rg-text-secondary)] px-3 py-1.5 rounded-full font-medium">
+              {watsonSummary.source === 'watson' ? '🤖 Watson X.ai' : '✨ AI Analysis'}
             </span>
           </div>
 
           {/* Overall Assessment */}
-          <div className="mb-4 p-4 bg-white rounded-lg">
-            <p className="text-gray-800 leading-relaxed">{watsonSummary.summary.overallAssessment}</p>
+          <div className="mb-4 p-4 bg-[var(--rg-bg-muted)] rounded-lg">
+            <p className="text-[var(--rg-text-secondary)] leading-relaxed">{watsonSummary.summary.overallAssessment}</p>
           </div>
 
           {/* Strengths & Areas to Improve */}
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+            <div className="bg-[var(--rg-surface)] rounded-lg p-4 border border-[var(--rg-border)]">
               <div className="flex items-center gap-2 mb-3">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-                <h4 className="font-semibold text-green-900">Your Strengths</h4>
+                <CheckCircle2 className="w-5 h-5 text-[var(--rg-accent)]" />
+                <h4 className="font-semibold text-[var(--rg-text-primary)]">Your Strengths</h4>
               </div>
               <ul className="space-y-2">
                 {watsonSummary.summary.strengths?.map((strength, idx) => (
-                  <li key={idx} className="text-sm text-green-800 flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">•</span>
+                  <li key={idx} className="text-sm text-[var(--rg-text-secondary)] flex items-start gap-2">
+                    <span className="text-[var(--rg-accent)] mt-0.5">•</span>
                     <span>{strength}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+            <div className="bg-[var(--rg-surface)] rounded-lg p-4 border border-[var(--rg-border)]">
               <div className="flex items-center gap-2 mb-3">
-                <AlertCircle className="w-5 h-5 text-orange-600" />
-                <h4 className="font-semibold text-orange-900">Areas to Improve</h4>
+                <AlertCircle className="w-5 h-5 text-[var(--rg-accent)]" />
+                <h4 className="font-semibold text-[var(--rg-text-primary)]">Areas to Improve</h4>
               </div>
               <ul className="space-y-2">
                 {watsonSummary.summary.areasToImprove?.map((area, idx) => (
-                  <li key={idx} className="text-sm text-orange-800 flex items-start gap-2">
-                    <span className="text-orange-600 mt-0.5">•</span>
+                  <li key={idx} className="text-sm text-[var(--rg-text-secondary)] flex items-start gap-2">
+                    <span className="text-[var(--rg-accent)] mt-0.5">•</span>
                     <span>{area}</span>
                   </li>
                 ))}
@@ -73,36 +136,36 @@ const ResumeSummaryView = ({ resume, watsonSummary }) => {
           </div>
 
           {/* Career Advice */}
-          <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="mb-4 p-4 bg-[var(--rg-bg-muted)] rounded-lg border border-[var(--rg-border)]">
             <div className="flex items-center gap-2 mb-2">
-              <Target className="w-5 h-5 text-blue-600" />
-              <h4 className="font-semibold text-blue-900">Career Direction</h4>
+              <Target className="w-5 h-5 text-[var(--rg-accent)]" />
+              <h4 className="font-semibold text-[var(--rg-text-primary)]">Career Direction</h4>
             </div>
-            <p className="text-sm text-blue-800 leading-relaxed">{watsonSummary.summary.careerAdvice}</p>
+            <p className="text-sm text-[var(--rg-text-secondary)] leading-relaxed">{watsonSummary.summary.careerAdvice}</p>
           </div>
 
           {/* Skill Development Priority */}
           {watsonSummary.summary.skillDevelopmentPriority && watsonSummary.summary.skillDevelopmentPriority.length > 0 && (
-            <div className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
+            <div className="mb-4 p-4 bg-[var(--rg-surface)] rounded-lg border border-[var(--rg-border)]">
               <div className="flex items-center gap-2 mb-3">
-                <TrendingUp className="w-5 h-5 text-indigo-600" />
-                <h4 className="font-semibold text-gray-900">Skill Development Priorities</h4>
+                <TrendingUp className="w-5 h-5 text-[var(--rg-accent)]" />
+                <h4 className="font-semibold text-[var(--rg-text-primary)]">Skill Development Priorities</h4>
               </div>
               <div className="space-y-3">
                 {watsonSummary.summary.skillDevelopmentPriority.map((skillItem, idx) => (
-                  <div key={idx} className="p-3 bg-gray-50 rounded-lg">
+                  <div key={idx} className="p-3 bg-[var(--rg-bg-muted)] rounded-lg">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-gray-900">{skillItem.skill}</span>
+                      <span className="font-semibold text-[var(--rg-text-primary)]">{skillItem.skill}</span>
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        skillItem.priority === 'high' ? 'bg-red-100 text-red-700' :
-                        skillItem.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-gray-100 text-gray-700'
+                        skillItem.priority === 'high' ? 'bg-[var(--rg-accent)] text-white' :
+                        skillItem.priority === 'medium' ? 'bg-[var(--rg-bg-muted)] text-[var(--rg-text-primary)]' :
+                        'bg-transparent text-[var(--rg-text-secondary)] border border-dashed border-[var(--rg-border)]'
                       }`}>
                         {skillItem.priority?.toUpperCase()}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-1">{skillItem.reason}</p>
-                    <p className="text-xs text-green-600 font-medium">{skillItem.expectedImpact}</p>
+                    <p className="text-sm text-[var(--rg-text-secondary)] mb-1">{skillItem.reason}</p>
+                    <p className="text-xs text-[var(--rg-accent)] font-medium">{skillItem.expectedImpact}</p>
                   </div>
                 ))}
               </div>
@@ -111,120 +174,147 @@ const ResumeSummaryView = ({ resume, watsonSummary }) => {
 
           {/* Next Steps */}
           {watsonSummary.summary.nextSteps && watsonSummary.summary.nextSteps.length > 0 && (
-            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-              <h4 className="font-semibold text-purple-900 mb-2">Recommended Next Steps</h4>
+            <div className="p-4 bg-[var(--rg-bg-muted)] rounded-lg border border-[var(--rg-border)]">
+              <h4 className="font-semibold text-[var(--rg-text-primary)] mb-2">Recommended Next Steps</h4>
               <ol className="space-y-2">
                 {watsonSummary.summary.nextSteps.map((step, idx) => (
-                  <li key={idx} className="text-sm text-purple-800 flex items-start gap-2">
-                    <span className="font-bold text-purple-600">{idx + 1}.</span>
+                  <li key={idx} className="text-sm text-[var(--rg-text-secondary)] flex items-start gap-2">
+                    <span className="font-bold text-[var(--rg-accent)]">{idx + 1}.</span>
                     <span>{step}</span>
                   </li>
                 ))}
               </ol>
             </div>
           )}
-        </Card>
+        </div>
       )}
 
       {/* Resume Summary Card */}
-      <Card>
-        <div className="space-y-6">
-          {/* Header */}
-          <div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Resume Summary</h3>
-            <p className="text-gray-600">Parsed information from your resume</p>
-          </div>
-
-          {/* Personal Info */}
-          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6">
-            <h4 className="text-xl font-bold text-gray-900 mb-4">{name}</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              {email && (
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Mail className="w-4 h-4" />
-                  <span>{email}</span>
+      <div className="card-base overflow-hidden rounded-[32px]">
+        <div className="bg-gradient-to-r from-[#0f172a] via-[#1a2238] to-[#233250] text-white px-6 py-8">
+          <div className="flex flex-wrap items-start justify-between gap-6">
+            <div className="max-w-2xl">
+              <p className="text-xs uppercase tracking-[0.4em] text-white/60">Candidate snapshot</p>
+              <h3 className="text-3xl font-semibold mt-2">{name}</h3>
+              <p className="text-white/80 text-lg">{primaryTitle}</p>
+              <div className="mt-4 flex flex-wrap gap-3 text-sm text-white/85">
+                {email && (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-1">
+                    <Mail className="w-4 h-4" />
+                    {email}
+                  </span>
+                )}
+                {phone && (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-1">
+                    <Phone className="w-4 h-4" />
+                    {phone}
+                  </span>
+                )}
+                {location && (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-1">
+                    <MapPin className="w-4 h-4" />
+                    {location}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 min-w-[220px]">
+              {quickStats.map((stat) => (
+                <div key={stat.label} className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-center">
+                  <p className="text-xs uppercase tracking-wide text-white/70">{stat.label}</p>
+                  <p className="text-xl font-semibold text-white">{stat.value}</p>
+                  {stat.hint && <p className="text-[11px] text-white/60">{stat.hint}</p>}
                 </div>
-              )}
-              {phone && (
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Phone className="w-4 h-4" />
-                  <span>{phone}</span>
-                </div>
-              )}
-              {location && (
-                <div className="flex items-center gap-2 text-gray-600 md:col-span-2">
-                  <MapPin className="w-4 h-4" />
-                  <span>{location}</span>
-                </div>
-              )}
+              ))}
             </div>
           </div>
+        </div>
 
-          {/* Summary */}
+        <div className="p-6 space-y-8 bg-white">
           {summary && (
-            <div>
-              <h5 className="font-semibold text-gray-900 mb-2">Professional Summary</h5>
-              <p className="text-gray-600 leading-relaxed">{summary}</p>
+            <div className="rounded-3xl border border-[var(--rg-border)] bg-[var(--rg-bg-muted)] p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-[var(--rg-accent)]" />
+                <h5 className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--rg-text-secondary)]">Professional summary</h5>
+              </div>
+              <p className="text-[var(--rg-text-secondary)] leading-relaxed">{summary}</p>
             </div>
           )}
 
-          {/* Experience */}
-          {experience && experience.length > 0 && (
+          {experienceEntries.length > 0 && (
             <div>
-              <h5 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Briefcase className="w-5 h-5" />
-                Work Experience
-              </h5>
+              <div className="flex items-center gap-2 mb-4">
+                <Briefcase className="w-5 h-5 text-[var(--rg-accent)]" />
+                <h5 className="text-lg font-semibold text-[var(--rg-text-primary)]">Experience highlights</h5>
+              </div>
               <div className="space-y-4">
-                {experience.map((exp, idx) => (
-                  <div key={idx} className="border-l-4 border-primary-500 pl-4">
-                    <h6 className="font-semibold text-gray-900">{exp.position || exp.title || exp.role}</h6>
-                    <p className="text-sm text-gray-600">{exp.company || exp.organization} • {exp.duration || exp.period || exp.dates}</p>
-                    {(exp.description || exp.responsibilities) && (
-                      <p className="text-sm text-gray-600 mt-1">{exp.description || exp.responsibilities}</p>
-                    )}
+                {experienceEntries.map((exp, idx) => (
+                  <div key={idx} className="relative pl-6">
+                    <span className="absolute left-0 top-2 h-3 w-3 rounded-full bg-[var(--rg-accent)]"></span>
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_12px_30px_rgba(15,23,42,0.06)]">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-base font-semibold text-slate-900">{exp.position || exp.title || exp.role}</p>
+                          <p className="text-sm text-slate-500">{exp.company || exp.organization}</p>
+                        </div>
+                        <span className="text-xs uppercase tracking-wide text-slate-400">{exp.duration || exp.period || exp.dates}</span>
+                      </div>
+                      {(exp.description || exp.responsibilities) && (
+                        <p className="text-sm text-slate-600 mt-2">{exp.description || exp.responsibilities}</p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Education */}
-          {education && education.length > 0 && (
+          {educationEntries.length > 0 && (
             <div>
-              <h5 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <GraduationCap className="w-5 h-5" />
-                Education
-              </h5>
-              <div className="space-y-3">
-                {education.map((edu, idx) => (
-                  <div key={idx} className="border-l-4 border-secondary-400 pl-4">
-                    <h6 className="font-semibold text-gray-900">{edu.degree || edu.qualification}</h6>
-                    <p className="text-sm text-gray-600">{edu.school || edu.institution || edu.university} • {edu.year || edu.graduation_year}</p>
+              <div className="flex items-center gap-2 mb-3">
+                <GraduationCap className="w-5 h-5 text-[var(--rg-accent)]" />
+                <h5 className="text-lg font-semibold text-[var(--rg-text-primary)]">Education</h5>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {educationEntries.map((edu, idx) => (
+                  <div key={idx} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-base font-semibold text-slate-900">{edu.degree || edu.qualification}</p>
+                    <p className="text-sm text-slate-500">{edu.school || edu.institution || edu.university}</p>
+                    <p className="text-xs uppercase tracking-wide text-slate-400 mt-1">{edu.year || edu.graduation_year}</p>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Skills */}
-          {skills && skills.length > 0 && (
+          {decoratedSkills.length > 0 && (
             <div>
-              <h5 className="font-semibold text-gray-900 mb-3">Skills</h5>
+              <div className="flex items-center justify-between mb-3">
+                <h5 className="text-lg font-semibold text-[var(--rg-text-primary)]">Skills matrix</h5>
+                <span className="text-sm text-[var(--rg-text-secondary)]">{verifiedSkillCount} verified • {decoratedSkills.length} tracked</span>
+              </div>
               <div className="flex flex-wrap gap-2">
-                {skills.map((skill, idx) => (
+                {decoratedSkills.map((skill, idx) => (
                   <span
-                    key={idx}
-                    className="px-3 py-1 bg-gradient-primary text-white rounded-full text-sm font-medium"
+                    key={`${skill.label}-${idx}`}
+                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium ${
+                      skill.verified
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                        : 'bg-[var(--rg-bg-muted)] text-[var(--rg-text-primary)] border-[var(--rg-border)]'
+                    }`}
                   >
-                    {typeof skill === 'string' ? skill : skill.name || skill.skill}
+                    {skill.label}
+                    {skill.verified && <ShieldCheck className="w-3.5 h-3.5" />}
+                    {typeof skill.score === 'number' && (
+                      <span className="text-xs font-semibold text-[var(--rg-text-secondary)]">{skill.score}%</span>
+                    )}
                   </span>
                 ))}
               </div>
             </div>
           )}
         </div>
-      </Card>
+      </div>
     </div>
   )
 }

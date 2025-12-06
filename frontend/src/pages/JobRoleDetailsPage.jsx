@@ -1,5 +1,6 @@
+import { useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Briefcase, MapPin, DollarSign, CheckCircle, XCircle, Target, Lightbulb, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Briefcase, MapPin, IndianRupee, XCircle, Target, Lightbulb, ExternalLink, BadgeCheck, Users } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Navbar from '../components/ui/Navbar'
 import Footer from '../components/ui/Footer'
@@ -11,7 +12,7 @@ import { useResumeContext } from '../hooks/useResumeContext'
 const JobRoleDetailsPage = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { skillGaps } = useResumeContext()
+  const { skillGaps, parsedResume } = useResumeContext()
   const role = location.state?.role
 
   if (!role) {
@@ -20,18 +21,63 @@ const JobRoleDetailsPage = () => {
   }
 
   const job = role.job || role;
+  const matchedSkills = Array.isArray(role.matchedSkills) ? role.matchedSkills : []
+  const missingSkills = Array.isArray(role.missingSkills) ? role.missingSkills : []
+  const requiredSkills = Array.isArray(role.requiredSkills) ? role.requiredSkills : []
   const applicationUrl = job.applicationUrl || role.applicationUrl;
-  const roleSkillGaps = skillGaps[role.id]
+  const roleSkillGaps = skillGaps?.[role.id]
+  const applicationsCount = job.applications ?? 0
+
+  const verifiedSkillSet = useMemo(() => {
+    const set = new Set()
+    const pushSkill = (skillName) => {
+      if (!skillName || typeof skillName !== 'string') {
+        return
+      }
+      const normalized = skillName.trim().toLowerCase()
+      if (!normalized || set.has(normalized)) {
+        return
+      }
+      set.add(normalized)
+    }
+
+    const ownedSkills = Array.isArray(skillGaps?.skillsHave) ? skillGaps.skillsHave : []
+    ownedSkills
+      .filter((skill) => skill?.verified)
+      .forEach((skill) => pushSkill(skill.skill || skill.name || skill.title))
+
+    const verificationStatusSkills = parsedResume?.parsed_resume?.verification_status?.verifiedSkills || []
+    verificationStatusSkills.forEach((skill) => pushSkill(skill.skill || skill.name || skill.title))
+
+    return set
+  }, [skillGaps, parsedResume])
+
+  const verifiedMatchedSkills = useMemo(() => {
+    if (!verifiedSkillSet.size) {
+      return []
+    }
+    return matchedSkills.filter((skill) => typeof skill === 'string' && verifiedSkillSet.has(skill.toLowerCase()))
+  }, [matchedSkills, verifiedSkillSet])
   
   // Format salary with currency symbol
+  const toInr = (value, currency) => {
+    if (!value) return 0
+    if (currency && currency.toUpperCase() === 'USD') {
+      return Math.round(value * 83)
+    }
+    return value
+  }
+
   const formatSalary = (salaryObj) => {
-    if (!salaryObj) return role.salary; // Fallback to existing salary string
-    const currency = salaryObj.currency || 'INR';
-    const symbol = currency === 'INR' ? '₹' : '$';
-    const min = salaryObj.min?.toLocaleString('en-IN');
-    const max = salaryObj.max?.toLocaleString('en-IN');
-    return `${symbol}${min}-${symbol}${max}`;
-  };
+    if (!salaryObj) return role.salary
+    const min = toInr(salaryObj.min, salaryObj.currency)
+    const max = toInr(salaryObj.max, salaryObj.currency)
+    const format = (val) => (val ? `₹${val.toLocaleString('en-IN')}` : null)
+    if (min && max) return `${format(min)} - ${format(max)}`
+    if (min) return `From ${format(min)}`
+    if (max) return `Up to ${format(max)}`
+    return role.salary || 'Not specified'
+  }
   
   const displaySalary = formatSalary(job.salary);
 
@@ -91,7 +137,7 @@ const JobRoleDetailsPage = () => {
                       <span>{role.location}</span>
                     </div>
                     <div className="flex items-center gap-2 text-primary-600 font-semibold">
-                      <DollarSign className="w-5 h-5" />
+                      <IndianRupee className="w-5 h-5" />
                       <span>{displaySalary}</span>
                     </div>
                   </div>
@@ -132,29 +178,35 @@ const JobRoleDetailsPage = () => {
                     {/* Matched Skills */}
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                        Skills You Have ({role.matchedSkills.length})
+                        <BadgeCheck className="w-5 h-5 text-emerald-600" />
+                        Verified Skills You Have ({verifiedMatchedSkills.length})
                       </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {role.matchedSkills.map((skill, idx) => (
-                          <span
-                            key={idx}
-                            className="px-3 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium border border-green-200"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
+                      {verifiedMatchedSkills.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {verifiedMatchedSkills.map((skill, idx) => (
+                            <span
+                              key={`${skill}-${idx}`}
+                              className="px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium border border-emerald-200"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          None of your verified skills are matched yet. Complete more verifications to showcase them here.
+                        </p>
+                      )}
                     </div>
 
                     {/* Missing Skills */}
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                         <XCircle className="w-5 h-5 text-red-600" />
-                        Skills to Learn ({role.missingSkills.length})
+                        Skills to Learn ({missingSkills.length})
                       </h3>
                       <div className="flex flex-wrap gap-2">
-                        {role.missingSkills.map((skill, idx) => (
+                        {missingSkills.map((skill, idx) => (
                           <span
                             key={idx}
                             className="px-3 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium border border-red-200"
@@ -223,15 +275,22 @@ const JobRoleDetailsPage = () => {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">Total Skills</span>
-                      <span className="font-bold text-gray-900">{role.requiredSkills.length}</span>
+                      <span className="font-bold text-gray-900">{requiredSkills.length}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">You Have</span>
-                      <span className="font-bold text-green-600">{role.matchedSkills.length}</span>
+                      <span className="font-bold text-emerald-600">{verifiedMatchedSkills.length}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">To Learn</span>
-                      <span className="font-bold text-red-600">{role.missingSkills.length}</span>
+                      <span className="font-bold text-red-600">{missingSkills.length}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Applicants</span>
+                      <span className="font-bold text-gray-900 flex items-center gap-1">
+                        <Users className="w-4 h-4 text-gray-500" />
+                        {applicationsCount}
+                      </span>
                     </div>
                     <div className="pt-4 border-t border-gray-200">
                       <div className="flex items-center justify-between mb-2">

@@ -9,6 +9,7 @@ import Resume from '../models/Resume.js';
 import { logger } from '../utils/logger.js';
 import { generateQuizQuestions } from './aiRouter.js';
 import { determineBadge } from '../utils/badgeUtils.js';
+import { notifyQuizCompleted } from './notificationService.js';
 
 /**
  * Generate a new MCQ quiz for a skill
@@ -252,8 +253,19 @@ export async function submitQuiz(quizId, answers) {
         logger.warn(`Resume ${quiz.resumeId} not found for quiz verification update`);
       }
     } catch (resumeError) {
-      logger.error('Failed to update resume verification:', resumeError);
+        logger.error('Failed to update resume verification:', resumeError);
       // Don't throw - quiz completion should still succeed
+    }
+    
+    // Send notification to user about quiz completion
+    try {
+      if (resume && resume.userId) {
+        const badge = determineBadge(quiz.score);
+        await notifyQuizCompleted(resume.userId, quiz.skillName, quiz.score, badge);
+      }
+    } catch (notifError) {
+      logger.error('Failed to send quiz completion notification:', notifError);
+      // Don't throw - notification failure shouldn't break quiz completion
     }
     
     // Return detailed results

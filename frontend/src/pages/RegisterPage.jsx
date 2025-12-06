@@ -55,12 +55,13 @@ const REGISTER_TESTIMONIAL = {
 
 const RegisterPage = () => {
   const navigate = useNavigate()
-  const { register, isAuthenticated, loading } = useAuth()
+  const { register, isAuthenticated, loading, user } = useAuth()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'user'
   })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -70,9 +71,13 @@ const RegisterPage = () => {
   // Redirect if already authenticated (only after initial auth check is complete)
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate('/dashboard', { replace: true })
+      if (user?.role === 'recruiter' || user?.role === 'admin') {
+        navigate('/recruiter', { replace: true })
+      } else {
+        navigate('/upload', { replace: true })
+      }
     }
-  }, [isAuthenticated, loading, navigate])
+  }, [isAuthenticated, loading, user, navigate])
 
   const triggerChadCopy = () => {
     const nextLine = REGISTER_CHAD_LINES[Math.floor(Math.random() * REGISTER_CHAD_LINES.length)]
@@ -117,11 +122,21 @@ const RegisterPage = () => {
     setIsLoading(true)
 
     try {
-      const result = await register(formData.name, formData.email, formData.password)
+      const result = await register(formData.name, formData.email, formData.password, formData.role)
       
       if (result.success) {
-        // Successful registration - navigate to upload page
-        navigate('/upload')
+        // Check if email verification is required
+        if (result.requiresVerification) {
+          // Navigate to email verification page
+          navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`)
+        } else {
+          // Redirect based on user role
+          if (['recruiter', 'admin'].includes(result.user?.role) || formData.role === 'recruiter') {
+            navigate('/recruiter')
+          } else {
+            navigate('/upload')
+          }
+        }
       } else {
         setError(result.message || 'Registration failed')
         setIsLoading(false)
@@ -129,22 +144,22 @@ const RegisterPage = () => {
       }
     } catch (err) {
       console.error('Registration error:', err)
-      setError('Registration failed. Please try again.')
+      setError(err.response?.data?.message || 'Registration failed. Please try again.')
       setIsLoading(false)
       resetHeroCopy()
     }
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#080c16] px-6 py-10 text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_55%),radial-gradient(circle_at_80%_0%,rgba(236,72,153,0.18),transparent_45%)]" />
+    <div className="page-shell relative min-h-screen px-6 py-10">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(31,122,236,0.08),transparent_55%),radial-gradient(circle_at_80%_0%,rgba(15,78,169,0.08),transparent_45%)]" />
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
+            "linear-gradient(rgba(15,23,42,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.03) 1px, transparent 1px)",
           backgroundSize: '44px 44px',
-          opacity: 0.45
+          opacity: 0.25
         }}
       />
       <motion.div
@@ -157,28 +172,28 @@ const RegisterPage = () => {
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.6 }}
-          className="relative flex flex-col justify-between overflow-hidden rounded-[34px] border border-white/10 bg-white/5 p-8 backdrop-blur-2xl"
+          className="relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-[var(--rg-border)] bg-[var(--rg-surface)] p-8 shadow-soft"
         >
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-70" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent opacity-25" />
           <div className="relative space-y-8">
             <div className="flex items-center justify-between gap-4">
               <Link
                 to="/"
-                className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white visited:text-white"
+                className="inline-flex items-center gap-3 rounded-full border border-[var(--rg-border)] bg-[var(--rg-surface-alt)] px-5 py-2 text-sm font-semibold text-[var(--rg-text-primary)] visited:text-[var(--rg-text-primary)]"
               >
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-xs font-black text-slate-900">
                   RG
                 </span>
                 Back to site
               </Link>
-              <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-semibold tracking-wide ${isChadAnimating ? 'border-rose-300/60 text-rose-100' : 'border-white/15 text-white/70'}`}>
-                <span className={`h-2 w-2 rounded-full ${isChadAnimating ? 'bg-rose-300 animate-pulse' : 'bg-white/40'}`} />
+              <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-semibold tracking-wide ${isChadAnimating ? 'border-rose-300/60 text-rose-700' : 'border-[var(--rg-border)] text-[var(--rg-text-secondary)]'}`}>
+                <span className={`h-2 w-2 rounded-full ${isChadAnimating ? 'bg-rose-400 animate-pulse' : 'bg-[var(--rg-border)]'}`} />
                 {isChadAnimating ? 'Minting workspace' : 'Standing by'}
               </div>
             </div>
 
             <div className="space-y-6">
-              <p className="text-[11px] uppercase tracking-[0.5em] text-white/60">New account</p>
+              <p className="text-[11px] uppercase tracking-[0.5em] text-[var(--rg-text-secondary)]">New account</p>
               <div className="min-h-[160px]">
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -188,10 +203,10 @@ const RegisterPage = () => {
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.45, ease: 'easeOut' }}
                   >
-                    <h1 className="text-4xl font-semibold leading-tight text-white md:text-[46px]">
+                    <h1 className="text-4xl font-semibold leading-tight text-[var(--rg-text-primary)] md:text-[46px]">
                       {heroCopy.title}
                     </h1>
-                    <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/70">
+                    <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--rg-text-secondary)]">
                       {heroCopy.subtitle}
                     </p>
                   </motion.div>
@@ -199,12 +214,12 @@ const RegisterPage = () => {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.35)]">
-              <p className="text-[11px] uppercase tracking-[0.4em] text-white/60">What you get</p>
+            <div className="rounded-3xl border border-[var(--rg-border)] bg-[var(--rg-surface-alt)] p-6 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.4em] text-[var(--rg-text-secondary)]">What you get</p>
               <div className="mt-4 space-y-4">
                 {REGISTER_BULLETS.map((bullet) => (
-                  <div key={bullet} className="flex items-start gap-3 text-sm text-white/85">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 text-rose-300" />
+                  <div key={bullet} className="flex items-start gap-3 text-sm text-[var(--rg-text-primary)]">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 text-rose-500" />
                     <span>{bullet}</span>
                   </div>
                 ))}
@@ -215,10 +230,10 @@ const RegisterPage = () => {
           <div className="relative mt-8 space-y-4">
             <div className="grid gap-4 sm:grid-cols-3">
               {REGISTER_BADGES.map(({ title, caption, icon: Icon }) => (
-                <motion.div key={title} whileHover={{ y: -4 }} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <Icon className="mb-2 h-5 w-5 text-white" />
-                  <p className="text-sm font-semibold text-white">{title}</p>
-                  <p className="text-xs text-slate-200">{caption}</p>
+                <motion.div key={title} whileHover={{ y: -4 }} className="rounded-2xl border border-[var(--rg-border)] bg-[var(--rg-surface-alt)] p-4">
+                  <Icon className="mb-2 h-5 w-5 text-[var(--rg-text-primary)]" />
+                  <p className="text-sm font-semibold text-[var(--rg-text-primary)]">{title}</p>
+                  <p className="text-xs text-[var(--rg-text-secondary)]">{caption}</p>
                 </motion.div>
               ))}
             </div>
@@ -302,6 +317,38 @@ const RegisterPage = () => {
                     placeholder="you@studio.com"
                     required
                   />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+                  I am a
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, role: 'user' })}
+                    className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                      formData.role === 'user'
+                        ? 'border-slate-900 bg-slate-900 text-white'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="text-sm font-semibold">Job Seeker</div>
+                    <div className="mt-1 text-xs opacity-70">Looking for opportunities</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, role: 'recruiter' })}
+                    className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                      formData.role === 'recruiter'
+                        ? 'border-slate-900 bg-slate-900 text-white'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="text-sm font-semibold">Recruiter</div>
+                    <div className="mt-1 text-xs opacity-70">Hiring talent</div>
+                  </button>
                 </div>
               </div>
 

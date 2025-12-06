@@ -406,4 +406,101 @@ router.put('/resumes/:resumeId/activate', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * @route   PUT /api/user/password
+ * @desc    Change user password
+ * @access  Private
+ */
+router.put('/password', requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required'
+      });
+    }
+
+    const user = await User.findById(req.user.userId).select('+password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const matches = await user.comparePassword(currentPassword);
+    if (!matches) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    user.password = newPassword;
+    // Invalidate refresh token on password change
+    user.refreshToken = null;
+    await user.save();
+
+    logger.info(`Password updated for user: ${user.email}`);
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+  } catch (error) {
+    logger.error('Update password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating password'
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/user/account
+ * @desc    Delete user account and associated resumes
+ * @access  Private
+ */
+router.delete('/account', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Delete avatar file if exists
+    if (user.avatar_url) {
+      const avatarPath = path.join(__dirname, '../../', user.avatar_url);
+      if (fs.existsSync(avatarPath)) {
+        fs.unlinkSync(avatarPath);
+      }
+    }
+
+    // Delete resumes belonging to user
+    await Resume.deleteMany({ userId: user._id });
+
+    await user.deleteOne();
+
+    logger.info(`Account deleted for user: ${user.email}`);
+
+    res.json({
+      success: true,
+      message: 'Account deleted successfully'
+    });
+  } catch (error) {
+    logger.error('Delete account error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting account'
+    });
+  }
+});
+
 export default router;

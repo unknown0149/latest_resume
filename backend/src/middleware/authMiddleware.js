@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken'
+import User from '../models/User.js'
 import { logger } from '../utils/logger.js'
 
 /**
@@ -19,7 +20,11 @@ export const authenticateToken = (req, res, next) => {
 
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET)
-    req.user = user
+    req.user = {
+      ...user,
+      _id: user.userId || user._id,
+      userId: user.userId || user._id
+    }
     next()
   } catch (error) {
     logger.error(`JWT verification failed: ${error.message}`)
@@ -40,7 +45,7 @@ export const optionalAuth = authenticateToken;
  * Middleware to require authentication (strict mode)
  * Use this when authentication is mandatory
  */
-export const requireAuth = (req, res, next) => {
+export const requireAuth = async (req, res, next) => {
   const authHeader = req.headers['authorization']
   const token = authHeader && authHeader.split(' ')[1]
 
@@ -53,8 +58,28 @@ export const requireAuth = (req, res, next) => {
   }
 
   try {
-    const user = jwt.verify(token, process.env.JWT_SECRET)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const user = await User.findById(decoded.userId).select('-password')
+
+    if (!user) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'User not found',
+        statusCode: 401,
+      })
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Account is inactive',
+        statusCode: 403,
+      })
+    }
+
     req.user = user
+    req.user.userId = user._id
+
     next()
   } catch (error) {
     logger.error(`JWT verification failed: ${error.message}`)
@@ -65,6 +90,8 @@ export const requireAuth = (req, res, next) => {
     })
   }
 }
+
+export const authenticate = requireAuth
 
 /**
  * Generate JWT token for user

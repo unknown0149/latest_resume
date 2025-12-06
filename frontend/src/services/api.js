@@ -1,13 +1,40 @@
 import axios from 'axios'
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+
 // Create axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
+  baseURL: API_BASE_URL,
   timeout: 120000, // 120 seconds for resume processing (NER can take 30-45s)
   headers: {
     'Content-Type': 'application/json',
   },
 })
+
+const clearAuthState = () => {
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('user')
+}
+
+const refreshAccessToken = async () => {
+  const refreshToken = localStorage.getItem('refresh_token')
+  if (!refreshToken) {
+    return null
+  }
+
+  try {
+    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken })
+    if (response.data?.success && response.data?.token) {
+      localStorage.setItem('auth_token', response.data.token)
+      return response.data.token
+    }
+  } catch (error) {
+    console.error('❌ Token refresh failed:', error)
+  }
+
+  return null
+}
 
 // Request interceptor
 api.interceptors.request.use(
@@ -24,15 +51,29 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor
+// Simple 401 handler - just redirect to login without token refresh complexity
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized
-      localStorage.removeItem('auth_token')
-      window.location.href = '/'
+  async (error) => {
+    const originalRequest = error.config || {}
+
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh')) {
+      originalRequest._retry = true
+
+      const newToken = await refreshAccessToken()
+
+      if (newToken) {
+        api.defaults.headers.common.Authorization = `Bearer ${newToken}`
+        originalRequest.headers = originalRequest.headers || {}
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
+        return api(originalRequest)
+      }
+
+      clearAuthState()
+      window.location.href = '/login'
+      return Promise.reject(error)
     }
+
     return Promise.reject(error)
   }
 )
@@ -204,6 +245,50 @@ export const resumeAPI = {
   },
 }
 
+// Candidate applications & offers
+export const applicationsAPI = {
+  list: async (filters = {}) => {
+    // Try new endpoint first, fallback to old
+    try {
+      const response = await api.get('/jobs/applications', { params: filters })
+      return response.data
+    } catch (error) {
+      const response = await api.get('/applications', { params: filters })
+      return response.data
+    }
+  },
+  apply: async (jobId, payload) => {
+    const response = await api.post(`/applications/apply/${jobId}`, payload)
+    return response.data
+  },
+  details: async (applicationId) => {
+    const response = await api.get(`/applications/${applicationId}`)
+    return response.data
+  },
+  withdraw: async (applicationId, reason) => {
+    const response = await api.put(`/applications/${applicationId}/withdraw`, { reason })
+    return response.data
+  },
+  stats: async () => {
+    // Try new endpoint first, fallback to old
+    try {
+      const response = await api.get('/jobs/applications', { params: { limit: 1 } })
+      return { data: response.data?.stats || {} }
+    } catch (error) {
+      const response = await api.get('/applications/user/stats')
+      return response.data
+    }
+  },
+  getOffers: async () => {
+    const response = await api.get('/applications/offers')
+    return response.data
+  },
+  respondToOffer: async (applicationId, action, message) => {
+    const response = await api.put(`/applications/${applicationId}/offer/respond`, { action, message })
+    return response.data
+  },
+}
+
 // Interview API functions
 export const interviewAPI = {
   // Generate interview questions
@@ -238,6 +323,101 @@ export const interviewAPI = {
       jobId,
       ...options
     })
+    return response.data
+  },
+
+  // Candidate interview tracking
+  getScheduledInterviews: async (params = {}) => {
+    const response = await api.get('/interviews', { params })
+    return response.data
+  },
+  getInterviewDetails: async (interviewId) => {
+    const response = await api.get(`/interviews/${interviewId}`)
+    return response.data
+  },
+  respondToInterview: async (interviewId, payload) => {
+    const response = await api.put(`/interviews/${interviewId}/respond`, payload)
+    return response.data
+  }
+}
+
+// Recruiter API functions
+export const recruiterAPI = {
+  // Dashboard stats
+  getDashboard: async (orgSlug) => {
+    const response = await api.get(`/recruiter/${orgSlug}/dashboard`)
+    return response.data
+  },
+
+  // Job management
+  createJob: async (orgSlug, jobData) => {
+    const response = await api.post(`/recruiter/${orgSlug}/jobs`, jobData)
+    return response.data
+  },
+  getJobs: async (orgSlug, params = {}) => {
+    const response = await api.get(`/recruiter/${orgSlug}/jobs`, { params })
+    return response.data
+  },
+  getJob: async (orgSlug, jobId) => {
+    const response = await api.get(`/recruiter/${orgSlug}/jobs/${jobId}`)
+    return response.data
+  },
+  updateJob: async (orgSlug, jobId, jobData) => {
+    const response = await api.put(`/recruiter/${orgSlug}/jobs/${jobId}`, jobData)
+    return response.data
+  },
+  closeJob: async (orgSlug, jobId) => {
+    const response = await api.delete(`/recruiter/${orgSlug}/jobs/${jobId}`)
+    return response.data
+  },
+  cloneJob: async (orgSlug, jobId) => {
+    const response = await api.post(`/recruiter/${orgSlug}/jobs/${jobId}/clone`)
+    return response.data
+  },
+
+  // Application management
+  getApplications: async (orgSlug, params = {}) => {
+    const response = await api.get(`/recruiter/${orgSlug}/applications`, { params })
+    return response.data
+  },
+  getApplication: async (orgSlug, applicationId) => {
+    const response = await api.get(`/recruiter/${orgSlug}/applications/${applicationId}`)
+    return response.data
+  },
+  updateApplicationStatus: async (orgSlug, applicationId, status, note) => {
+    const response = await api.put(`/recruiter/${orgSlug}/applications/${applicationId}/status`, { status, note })
+    return response.data
+  },
+  bulkUpdateStatus: async (orgSlug, applicationIds, status) => {
+    const response = await api.post(`/recruiter/${orgSlug}/applications/bulk-status`, { applicationIds, status })
+    return response.data
+  },
+  bulkReject: async (orgSlug, applicationIds, reason) => {
+    const response = await api.post(`/recruiter/${orgSlug}/applications/bulk-reject`, { applicationIds, reason })
+    return response.data
+  },
+
+  // Interview scheduling
+  scheduleInterview: async (orgSlug, applicationId, interviewData) => {
+    const response = await api.post(`/recruiter/${orgSlug}/applications/${applicationId}/interview`, interviewData)
+    return response.data
+  },
+
+  // Offer management
+  sendOffer: async (orgSlug, applicationId, offerData) => {
+    const response = await api.post(`/recruiter/${orgSlug}/applications/${applicationId}/offer`, offerData)
+    return response.data
+  },
+
+  // Notes
+  addNote: async (orgSlug, applicationId, note) => {
+    const response = await api.post(`/recruiter/${orgSlug}/applications/${applicationId}/notes`, { note })
+    return response.data
+  },
+
+  // Candidate search
+  searchCandidates: async (orgSlug, params = {}) => {
+    const response = await api.get(`/recruiter/${orgSlug}/candidates/search`, { params })
     return response.data
   }
 }

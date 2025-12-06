@@ -5,34 +5,39 @@
 @layer base {
   :root {
     color-scheme: light;
-    --rg-bg: #f5f5f7;
-    --rg-bg-muted: #ededf1;
+    --rg-bg: #f7f8fb;
+    --rg-bg-muted: #edf1f7;
     --rg-surface: #ffffff;
-    --rg-surface-alt: #f8f8fb;
-    --rg-surface-strong: #f2f2f4;
-    --rg-border: #e1e3ea;
-    --rg-border-strong: #c7cad4;
-    --rg-text-primary: #1d1d1f;
-    --rg-text-secondary: #5c5f6a;
-    --rg-accent: #111827;
-    --rg-accent-muted: #6b7280;
-    --rg-shadow-soft: 0 20px 45px rgba(17, 24, 39, 0.08);
+    --rg-surface-alt: #f2f5fb;
+    --rg-surface-strong: #e5eaf3;
+    --rg-border: rgba(15, 23, 42, 0.08);
+    --rg-border-strong: rgba(15, 23, 42, 0.16);
+    --rg-text-primary: #0f172a;
+    --rg-text-secondary: #53607a;
+    --rg-accent: #1f7aec;
+    --rg-accent-muted: #a3b4d6;
+    --rg-accent-strong: #0f4ea9;
+    --rg-highlight: #f8fbff;
+    --rg-accent-gradient: linear-gradient(135deg, #1f7aec, #0f4ea9);
+    --rg-shadow-soft: 0 25px 60px rgba(15, 18, 23, 0.08);
+    --rg-shadow-strong: 0 25px 60px rgba(31, 122, 236, 0.15);
   }
 
   [data-theme='dark'] {
     color-scheme: dark;
-    --rg-bg: #050608;
-    --rg-bg-muted: #0d0f15;
-    --rg-surface: #0f1117;
-    --rg-surface-alt: #141823;
-    --rg-surface-strong: #1c202c;
-    --rg-border: rgba(255, 255, 255, 0.08);
-    --rg-border-strong: rgba(255, 255, 255, 0.16);
-    --rg-text-primary: #f5f7ff;
-    --rg-text-secondary: #cbd5e1;
-    --rg-accent: #f5f7ff;
-    --rg-accent-muted: #94a3b8;
-    --rg-shadow-soft: 0 25px 55px rgba(0, 0, 0, 0.65);
+    --rg-bg: #0d1014;
+    --rg-bg-muted: #14181f;
+    --rg-surface: #161b22;
+    --rg-surface-alt: #1c222b;
+    --rg-surface-strong: #232a34;
+    --rg-border: rgba(148, 163, 184, 0.2);
+    --rg-border-strong: rgba(148, 163, 184, 0.35);
+    --rg-text-primary: #f2f4f7;
+    --rg-text-secondary: #a9b3c3;
+    --rg-accent: #d6dcd8;
+    --rg-accent-muted: #7f8894;
+    --rg-accent-gradient: linear-gradient(135deg, #1f242c, #2b313c);
+    --rg-shadow-soft: 0 35px 70px rgba(0, 0, 0, 0.65);
   }
 
   body {
@@ -72,7 +77,9 @@
 
 @layer components {
   .page-shell {
-    background-color: var(--rg-bg);
+    background: radial-gradient(circle at 20% 20%, rgba(31, 122, 236, 0.05), transparent 35%),
+      radial-gradient(circle at 80% 0%, rgba(15, 78, 169, 0.04), transparent 30%),
+      var(--rg-bg);
     color: var(--rg-text-primary);
     min-height: 100vh;
   }
@@ -81,13 +88,22 @@
     max-width: 1200px;
     margin: 0 auto;
     padding-inline: 1.25rem;
+    padding-block: 2rem;
   }
 
   .card-base {
     background-color: var(--rg-surface);
     border: 1px solid var(--rg-border);
-    border-radius: 28px;
+    border-radius: 20px;
     box-shadow: var(--rg-shadow-soft);
+    backdrop-filter: blur(12px);
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+  }
+
+  .card-base:hover {
+    transform: translateY(-2px);
+    border-color: var(--rg-border-strong);
+    box-shadow: var(--rg-shadow-strong);
   }
 
   .badge-pill {
@@ -100,6 +116,116 @@
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.25em;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    border: 1px solid var(--rg-border);
+    padding: 0.45rem 1.1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--rg-text-secondary);
+    background-color: rgba(255, 255, 255, 0.85);
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .chip.is-active {
+    border-color: transparent;
+    background-image: none;
+    background-color: var(--rg-accent);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(47, 61, 76, 0.2);
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.9rem 1.2rem;
+    border-radius: 14px;
+    background: var(--rg-accent-gradient);
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    border: 1px solid var(--rg-accent-strong);
+    box-shadow: 0 15px 30px rgba(15, 78, 169, 0.2);
+    transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 36px rgba(31, 122, 236, 0.24);
+    filter: brightness(1.03);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: 14px;
+    background: var(--rg-surface-alt);
+    color: var(--rg-text-primary);
+    font-weight: 600;
+    border: 1px solid var(--rg-border);
+    transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+  }
+
+  .btn-secondary:hover {
+    transform: translateY(-1px);
+    border-color: var(--rg-border-strong);
+    background: var(--rg-highlight);
+  }
+
+  .pill-muted {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+    background: var(--rg-bg-muted);
+    color: var(--rg-text-secondary);
+    border: 1px solid var(--rg-border);
+    font-weight: 600;
+  }
+
+  .panel-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .section-title {
+    font-size: clamp(1.35rem, 2vw, 1.65rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--rg-text-primary);
+  }
+
+  .muted-card {
+    background: var(--rg-surface-alt);
+    border: 1px dashed var(--rg-border);
+    border-radius: 16px;
+    padding: 1.25rem;
+  }
+
+  .divider-soft {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--rg-border), transparent);
+    margin: 1.25rem 0;
   }
 }
 
@@ -183,4 +309,14 @@
 [data-theme='dark'] .border-white\/20,
 [data-theme='dark'] .border-white\/30 {
   border-color: var(--rg-border) !important;
+}
+
+[data-theme='dark'] .card-base {
+  background-color: var(--rg-surface);
+  box-shadow: var(--rg-shadow-soft);
+}
+
+[data-theme='dark'] .chip {
+  background-color: rgba(22, 27, 34, 0.85);
+  color: var(--rg-text-secondary);
 }

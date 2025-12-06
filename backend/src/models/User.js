@@ -55,7 +55,8 @@ const userSchema = new mongoose.Schema({
     emailNotifications: { type: Boolean, default: true },
     jobAlerts: { type: Boolean, default: true },
     newsletter: { type: Boolean, default: false },
-    theme: { type: String, enum: ['light', 'dark', 'auto'], default: 'auto' }
+    theme: { type: String, enum: ['light', 'dark', 'auto'], default: 'auto' },
+    twoFactorEnabled: { type: Boolean, default: false }
   },
   stats: {
     resumesUploaded: { type: Number, default: 0 },
@@ -79,6 +80,23 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  role: {
+    type: String,
+    enum: ['user', 'recruiter', 'admin'],
+    default: 'user',
+    index: true
+  },
+  organizationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    default: null,
+    index: true
+  },
+  subscriptionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Subscription',
+    default: null
   }
 }, {
   timestamps: true // Adds createdAt and updatedAt
@@ -120,12 +138,14 @@ userSchema.methods.getPublicProfile = function() {
     id: this._id,
     name: this.name,
     email: this.email,
+    role: this.role,
     avatar_url: this.avatar_url,
     tagline: this.tagline,
     bio: this.bio,
     phone: this.phone,
     location: this.location,
     social_links: this.social_links,
+    preferences: this.preferences,
     stats: this.stats,
     lastLoginAt: this.lastLoginAt,
     createdAt: this.createdAt,

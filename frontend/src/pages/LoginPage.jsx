@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, ArrowRight, AlertCircle, ShieldCheck, Sparkles, Zap, CheckCircle2 } from 'lucide-react'
 import Button from '../components/ui/Button'
@@ -55,22 +55,47 @@ const SESSION_TESTIMONIAL = {
 
 const LoginPage = () => {
   const navigate = useNavigate()
-  const { login, isAuthenticated, loading } = useAuth()
+  const location = useLocation()
+  const { login, isAuthenticated, loading, user } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [requiresVerification, setRequiresVerification] = useState(false)
+  const [resendingEmail, setResendingEmail] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
   const [heroCopy, setHeroCopy] = useState(LOGIN_BASE_COPY)
   const [chadPulse, setChadPulse] = useState(false)
+
+  const getPathFromState = (fallback) => {
+    const fromState = location.state?.from
+    if (!fromState) return fallback
+    if (typeof fromState === 'string') return fromState
+    if (typeof fromState.pathname === 'string') {
+      return `${fromState.pathname}${fromState.search || ''}${fromState.hash || ''}`
+    }
+    return fallback
+  }
+
+  const getRecruiterDestination = () => {
+    const intended = getPathFromState('/recruiter')
+    return intended.startsWith('/recruiter') ? intended : '/recruiter'
+  }
+
+  const getCandidateDestination = () => getPathFromState('/upload')
 
   // Redirect if already authenticated (only after initial auth check is complete)
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate('/dashboard', { replace: true })
+      if (user?.role === 'recruiter' || user?.role === 'admin') {
+        navigate(getRecruiterDestination(), { replace: true })
+      } else {
+        navigate(getCandidateDestination(), { replace: true })
+      }
     }
-  }, [isAuthenticated, loading, navigate])
+  }, [isAuthenticated, loading, user, navigate, location])
 
   const triggerChadCopy = () => {
     const nextLine = CHAD_LINES[Math.floor(Math.random() * CHAD_LINES.length)]
@@ -89,6 +114,41 @@ const LoginPage = () => {
       [e.target.name]: e.target.value
     })
     setError('')
+    setRequiresVerification(false)
+    setResendSuccess(false)
+  }
+
+  const handleResendVerification = async () => {
+    if (!formData.email) {
+      setError('Please enter your email address')
+      return
+    }
+
+    setResendingEmail(true)
+    setError('')
+    setResendSuccess(false)
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setResendSuccess(true)
+        setError('')
+      } else {
+        setError(data.message || 'Failed to resend verification email')
+      }
+    } catch (err) {
+      console.error('Resend verification error:', err)
+      setError('Failed to resend verification email. Please try again.')
+    } finally {
+      setResendingEmail(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -107,10 +167,17 @@ const LoginPage = () => {
       const result = await login(formData.email, formData.password)
       
       if (result.success) {
-        // Successful login - navigate to upload page
-        navigate('/upload')
+        if (['recruiter', 'admin'].includes(result.user?.role)) {
+          navigate(getRecruiterDestination(), { replace: true })
+        } else {
+          navigate(getCandidateDestination(), { replace: true })
+        }
       } else {
         setError(result.message || 'Invalid email or password')
+        // Check if the error is about email verification
+        if (result.message?.toLowerCase().includes('verify your email')) {
+          setRequiresVerification(true)
+        }
         setIsLoading(false)
         resetHeroCopy()
       }
@@ -123,15 +190,15 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#080c16] px-6 py-10 text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(148,163,184,0.15),transparent_60%),radial-gradient(circle_at_20%_40%,rgba(59,130,246,0.12),transparent_50%)]" />
+    <div className="page-shell relative min-h-screen px-6 py-10">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(31,122,236,0.08),transparent_55%),radial-gradient(circle_at_20%_40%,rgba(15,78,169,0.08),transparent_50%)]" />
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
+            "linear-gradient(rgba(15,23,42,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.03) 1px, transparent 1px)",
           backgroundSize: '44px 44px',
-          opacity: 0.45
+          opacity: 0.25
         }}
       />
       <motion.div
@@ -140,27 +207,27 @@ const LoginPage = () => {
         transition={{ duration: 0.6 }}
         className="relative z-10 mx-auto grid w-full max-w-6xl gap-10 lg:grid-cols-[1.1fr_0.9fr]"
       >
-        <div className="relative flex flex-col justify-between overflow-hidden rounded-[34px] border border-white/10 bg-white/5 p-8 backdrop-blur-2xl">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-70" />
+        <div className="relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-[var(--rg-border)] bg-[var(--rg-surface)] p-8 shadow-soft">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-transparent opacity-35" />
           <div className="relative space-y-8">
             <div className="flex items-center justify-between gap-4">
               <Link
                 to="/"
-                className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white visited:text-white"
+                className="inline-flex items-center gap-3 rounded-full border border-[var(--rg-border)] bg-[var(--rg-surface-alt)] px-5 py-2 text-sm font-semibold text-[var(--rg-text-primary)] visited:text-[var(--rg-text-primary)]"
               >
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-xs font-black text-slate-900">
                   RG
                 </span>
                 Back to site
               </Link>
-              <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-semibold tracking-wide ${chadPulse ? 'border-emerald-300/60 text-emerald-200' : 'border-white/15 text-white/70'}`}>
-                <span className={`h-2 w-2 rounded-full ${chadPulse ? 'bg-emerald-300 animate-pulse' : 'bg-white/40'}`} />
+              <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-semibold tracking-wide ${chadPulse ? 'border-emerald-300/60 text-emerald-700' : 'border-[var(--rg-border)] text-[var(--rg-text-secondary)]'}`}>
+                <span className={`h-2 w-2 rounded-full ${chadPulse ? 'bg-emerald-400 animate-pulse' : 'bg-[var(--rg-border)]'}`} />
                 {chadPulse ? 'Syncing credentials' : 'Perimeter idle'}
               </div>
             </div>
 
             <div className="space-y-5">
-              <p className="text-[11px] uppercase tracking-[0.5em] text-white/60">Client console</p>
+              <p className="text-[11px] uppercase tracking-[0.5em] text-[var(--rg-text-secondary)]">Client console</p>
               <div className="min-h-[160px]">
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -170,10 +237,10 @@ const LoginPage = () => {
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.45, ease: 'easeOut' }}
                   >
-                    <h1 className="text-4xl font-semibold leading-tight text-white md:text-[46px]">
+                    <h1 className="text-4xl font-semibold leading-tight text-[var(--rg-text-primary)] md:text-[46px]">
                       {heroCopy.title}
                     </h1>
-                    <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/70">
+                    <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--rg-text-secondary)]">
                       {heroCopy.subtitle}
                     </p>
                   </motion.div>
@@ -181,12 +248,12 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.35)]">
-              <p className="text-[11px] uppercase tracking-[0.4em] text-white/60">This session unlocks</p>
+            <div className="rounded-3xl border border-[var(--rg-border)] bg-[var(--rg-surface-alt)] p-6 shadow-soft">
+              <p className="text-[11px] uppercase tracking-[0.4em] text-[var(--rg-text-secondary)]">This session unlocks</p>
               <div className="mt-4 space-y-4">
                 {HERO_BULLETS.map((bullet) => (
-                  <div key={bullet} className="flex items-start gap-3 text-sm text-white/85">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-300" />
+                  <div key={bullet} className="flex items-start gap-3 text-sm text-[var(--rg-text-primary)]">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-500" />
                     <span>{bullet}</span>
                   </div>
                 ))}
@@ -245,9 +312,36 @@ const LoginPage = () => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4" />
-                  {error}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                  {requiresVerification && (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={resendingEmail}
+                        className="w-full rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-600 hover:bg-blue-100 disabled:opacity-50 transition-colors"
+                      >
+                        {resendingEmail ? 'Sending...' : 'Resend Verification Email'}
+                      </button>
+                      <Link
+                        to="/verify-email"
+                        className="block text-center text-sm text-blue-600 hover:underline"
+                      >
+                        Already have a verification code? Enter it here
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {resendSuccess && (
+                <div className="flex items-center gap-2 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-600">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Verification email sent! Please check your inbox.
                 </div>
               )}
 
