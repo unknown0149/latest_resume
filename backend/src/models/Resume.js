@@ -384,15 +384,22 @@ const resumeSchema = new mongoose.Schema(
         },
       }],
       salaryBoostOpportunities: [{
-        skill: String,
-        type: String,
+        id: String,
+        title: String,
         impact: String,
-        potentialIncrease: {
-          USD: {
-            min: Number,
-            max: Number,
-          },
+        timeframe: String,
+        priority: String,
+        description: String,
+        skillType: String,
+        salaryBoost: {
+          percentage: String,
+          absoluteUSD: mongoose.Schema.Types.Mixed, // Can be number or {min, max}
+          category: String,
         },
+        leverageSkill: String,
+        actionSteps: [String],
+        recommendedHoursPerWeek: Number,
+        experienceFit: String,
       }],
       tagline: String, // Generated personalized tagline
       strengths: [String], // Top strengths identified

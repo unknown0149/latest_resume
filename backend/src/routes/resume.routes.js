@@ -628,7 +628,7 @@ router.post('/:resumeId/analyze-role', async (req, res) => {
         reasons: skill.reasons,
         salaryBoost: skill.salaryBoost
       })),
-      salaryBoostOpportunities: skillAnalysis.salaryBoostOpportunities || [],
+      salaryBoostOpportunities: Array.isArray(salaryBoost) ? salaryBoost : [],
       tagline: watsonSummary?.tagline || '',
       strengths: watsonSummary?.key_strengths || [],
       analyzedAt: new Date()

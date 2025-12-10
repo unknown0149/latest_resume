@@ -485,7 +485,8 @@ router.get('/jobs/match/:resumeId', async (req, res) => {
         minSalary: resume.parsed_data?.expectedSalary
       },
       verifyWithWatson: enforceWatson,
-      sourcePlatforms: ['file']
+      // Don't filter by sourcePlatforms - allow all jobs from CSV regardless of their platform value
+      sourcePlatforms: ['linkedin', 'indeed', 'glassdoor', 'real', 'seed', 'api']
     });
     
     res.json({

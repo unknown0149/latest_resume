@@ -193,10 +193,10 @@ async function callHuggingFace(modelId, inputs, parameters = {}) {
       args = skills ? [inputs, threshold.toString(), skills] : [inputs, threshold.toString()];
       result = await executePythonScript(scriptPath, args);
     } else if (modelId.includes('sentence-transformers') || modelId.includes('embedding') || modelId.includes('MiniLM')) {
-      // Embeddings
+      // Embeddings - needs more time for first-time model download/loading (90s timeout)
       scriptPath = EMBEDDING_SERVICE;
       args = [typeof inputs === 'string' ? inputs : JSON.stringify(inputs)];
-      result = await executePythonScript(scriptPath, args);
+      result = await executePythonScript(scriptPath, args, 90000); // 90 second timeout for embeddings
     } else {
       throw new Error(`Unsupported model: ${modelId}`);
     }
@@ -431,13 +431,24 @@ export async function generateEmbedding(text) {
       };
     }
     
-    // Python service returns { success, embedding, dimension }
-    const embedding = result.data.embedding || result.data;
+    // Python service returns { success, data: { success, embedding, dimension } }
+    const pythonResult = result.data;
+    
+    if (!pythonResult || !pythonResult.embedding || !Array.isArray(pythonResult.embedding)) {
+      logger.error('Invalid embedding result structure:', JSON.stringify(pythonResult).substring(0, 200));
+      return {
+        success: false,
+        embedding: null,
+        error: 'Invalid embedding format received from Python service'
+      };
+    }
+    
+    logger.info(`Successfully generated embedding with ${pythonResult.embedding.length} dimensions`);
     
     return {
       success: true,
-      embedding: embedding,
-      dimensions: embedding.length,
+      embedding: pythonResult.embedding,
+      dimensions: pythonResult.embedding.length,
       provider: 'huggingface-local',
       model: 'sentence-transformers/all-MiniLM-L6-v2'
     };

@@ -73,9 +73,11 @@ const DashboardPage = () => {
 
   // Load resume data from API if not in context
   useEffect(() => {
+    let isMounted = true;
+    
     const loadResumeFromAPI = async () => {
+      // Skip if already loaded
       if (parsedResume && skillGaps?.length > 0) {
-        // Data already in context, skip API call
         return
       }
 
@@ -90,13 +92,15 @@ const DashboardPage = () => {
           
           if (resumes.length === 0) {
             console.log('No resumes found, redirecting to upload')
-            navigate('/upload')
+            if (isMounted) navigate('/upload')
             return
           }
           
           const latestResume = resumes[0]
-          setResumeId(latestResume.resumeId)
-          localStorage.setItem('lastResumeId', latestResume.resumeId)
+          if (isMounted) {
+            setResumeId(latestResume.resumeId)
+            localStorage.setItem('lastResumeId', latestResume.resumeId)
+          }
           
           // Load the resume data
           await loadResumeData(latestResume.resumeId)
@@ -152,10 +156,10 @@ const DashboardPage = () => {
       }
     }
 
-    if (isAuthenticated) {
+    if (isAuthenticated && !parsedResume) {
       loadResumeFromAPI()
     }
-  }, [isAuthenticated, parsedResume, skillGaps, resumeId, navigate])
+  }, [isAuthenticated])
 
   // Redirect to upload if no resume data, or to login if not authenticated
   useEffect(() => {
@@ -208,7 +212,7 @@ const DashboardPage = () => {
     if (resumeId && (!matchedJobs || matchedJobs.length === 0)) {
       fetchMatchedJobs()
     }
-  }, [resumeId, matchedJobs, setMatchedJobs])
+  }, [resumeId])
 
   const handleVerifyClick = (skill) => {
     if (!skill) return
