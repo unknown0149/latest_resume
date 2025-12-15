@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Building2, Users, Settings, Plus, Edit2, Trash2, Shield, Crown } from 'lucide-react'
+import { Building2, Users, Settings, Plus, Edit2, Trash2, Shield, Crown, X } from 'lucide-react'
 import api from '../services/api'
+import toast from 'react-hot-toast'
 
 export default function OrganizationManagement() {
   const [organization, setOrganization] = useState(null)
@@ -10,6 +11,15 @@ export default function OrganizationManagement() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createLoading, setCreateLoading] = useState(false)
+  const [createFormData, setCreateFormData] = useState({
+    name: '',
+    description: '',
+    industry: '',
+    size: '',
+    website: ''
+  })
 
   useEffect(() => {
     fetchOrganizationData()
@@ -25,6 +35,7 @@ export default function OrganizationManagement() {
       
       if (orgs.length === 0) {
         setError('No organization found. Please create one first.')
+        setShowCreateModal(true)
         setLoading(false)
         return
       }
@@ -58,6 +69,38 @@ export default function OrganizationManagement() {
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send invitation')
     }
+  }
+
+  const handleCreateOrganization = async (e) => {
+    e.preventDefault()
+    
+    if (!createFormData.name.trim()) {
+      toast.error('Organization name is required')
+      return
+    }
+
+    setCreateLoading(true)
+    try {
+      const response = await api.post('/organizations', createFormData)
+      
+      if (response.data.success) {
+        toast.success('Organization created successfully!')
+        setShowCreateModal(false)
+        setCreateFormData({ name: '', description: '', industry: '', size: '', website: '' })
+        await fetchOrganizationData()
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to create organization')
+    } finally {
+      setCreateLoading(false)
+    }
+  }
+
+  const handleCreateFormChange = (e) => {
+    setCreateFormData({
+      ...createFormData,
+      [e.target.name]: e.target.value
+    })
   }
 
   const handleRemoveMember = async (memberId) => {
@@ -159,6 +202,15 @@ export default function OrganizationManagement() {
         {error && (
           <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-red-800">{error}</p>
+            {!organization && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create Organization</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -336,6 +388,162 @@ export default function OrganizationManagement() {
           )}
         </div>
       </div>
+
+      {/* Create Organization Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center space-x-3">
+                <Building2 className="w-6 h-6 text-blue-600" />
+                <h2 className="text-2xl font-semibold text-gray-900">Create Organization</h2>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                disabled={createLoading}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleCreateOrganization} className="p-6 space-y-6">
+              {/* Organization Name */}
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Organization Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={createFormData.name}
+                  onChange={handleCreateFormChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter organization name"
+                  required
+                  disabled={createLoading}
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={createFormData.description}
+                  onChange={handleCreateFormChange}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  placeholder="Brief description of your organization"
+                  disabled={createLoading}
+                />
+              </div>
+
+              {/* Industry and Size Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Industry */}
+                <div>
+                  <label htmlFor="industry" className="block text-sm font-medium text-gray-700 mb-2">
+                    Industry
+                  </label>
+                  <select
+                    id="industry"
+                    name="industry"
+                    value={createFormData.industry}
+                    onChange={handleCreateFormChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={createLoading}
+                  >
+                    <option value="">Select industry</option>
+                    <option value="technology">Technology</option>
+                    <option value="finance">Finance</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="education">Education</option>
+                    <option value="retail">Retail</option>
+                    <option value="manufacturing">Manufacturing</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                {/* Company Size */}
+                <div>
+                  <label htmlFor="size" className="block text-sm font-medium text-gray-700 mb-2">
+                    Company Size
+                  </label>
+                  <select
+                    id="size"
+                    name="size"
+                    value={createFormData.size}
+                    onChange={handleCreateFormChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={createLoading}
+                  >
+                    <option value="">Select size</option>
+                    <option value="1-10">1-10 employees</option>
+                    <option value="11-50">11-50 employees</option>
+                    <option value="51-200">51-200 employees</option>
+                    <option value="201-500">201-500 employees</option>
+                    <option value="501-1000">501-1000 employees</option>
+                    <option value="1000+">1000+ employees</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Website */}
+              <div>
+                <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-2">
+                  Website
+                </label>
+                <input
+                  type="url"
+                  id="website"
+                  name="website"
+                  value={createFormData.website}
+                  onChange={handleCreateFormChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://example.com"
+                  disabled={createLoading}
+                />
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  disabled={createLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={createLoading}
+                >
+                  {createLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>Create Organization</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

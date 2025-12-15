@@ -137,14 +137,14 @@ const organizationSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// Indexes
-organizationSchema.index({ slug: 1 });
+// Indexes (slug index already created by unique: true)
 organizationSchema.index({ owner: 1 });
 organizationSchema.index({ 'members.userId': 1 });
 
-// Pre-save hook to generate slug
-organizationSchema.pre('save', async function(next) {
-  if (this.isModified('name') && !this.slug) {
+// Pre-validate hook to generate slug BEFORE validation
+organizationSchema.pre('validate', async function(next) {
+  // Generate slug for new documents or when name is modified and slug is missing
+  if ((this.isNew || this.isModified('name')) && !this.slug) {
     this.slug = this.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')

@@ -158,17 +158,37 @@ export async function extractText(file) {
     
     // PDF files
     if (mimetype === 'application/pdf') {
-      const buffer = await fs.readFile(path);
-      const data = await pdf(buffer);
-      
-      raw_text = data.text;
-      pages = data.numpages;
-      
-      // Check if OCR needed (less than 100 chars per page)
-      const avgCharsPerPage = raw_text.length / pages;
-      if (avgCharsPerPage < 100) {
-        ocrNeeded = true;
-        extractionConfidence = 0.3;
+      try {
+        const buffer = await fs.readFile(path);
+        // Try basic pdf-parse first for speed
+        try {
+          const data = await pdf(buffer, {
+            max: 0,
+            version: 'v2.0.550'
+          });
+          
+          raw_text = data.text;
+          pages = data.numpages;
+        } catch (pdfError) {
+          // If basic parsing fails, try more robust methods
+          logger.warn(`Basic PDF parsing failed: ${pdfError.message}, trying advanced methods...`);
+          
+          // Import and use the advanced extraction service
+          const { extractFromPDF } = await import('./extractionService.js');
+          const result = await extractFromPDF(path);
+          raw_text = result.text;
+          pages = result.pages;
+        }
+        
+        // Check if OCR needed (less than 100 chars per page)
+        const avgCharsPerPage = raw_text.length / pages;
+        if (avgCharsPerPage < 100) {
+          ocrNeeded = true;
+          extractionConfidence = 0.3;
+        }
+      } catch (error) {
+        logger.error(`PDF extraction failed: ${error.message}`);
+        throw new Error(`Failed to extract text from PDF: ${error.message}`);
       }
     }
     // DOCX files

@@ -44,13 +44,16 @@ const mapSourcePlatform = (value) => {
   if (allowedSourcePlatforms.has(normalized)) {
     return normalized
   }
-  if (normalized === 'file' || normalized === 'official_notification' || normalized === 'career_page') {
+  if (normalized === 'file' || normalized === 'official_notification') {
+    return 'seed'
+  }
+  if (normalized === 'career_page') {
     return 'manual'
   }
   if (normalized === 'job_portal' || normalized === 'aggregator') {
     return 'api'
   }
-  return 'manual'
+  return 'seed'
 }
 
 const ensureDate = (value, fallback = new Date()) => {

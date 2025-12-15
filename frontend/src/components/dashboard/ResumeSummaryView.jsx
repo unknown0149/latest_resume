@@ -1,6 +1,15 @@
-import { Mail, Phone, MapPin, Briefcase, GraduationCap, Brain, TrendingUp, Target, CheckCircle2, AlertCircle, Sparkles, ShieldCheck } from 'lucide-react'
+import { Mail, Phone, MapPin, Briefcase, GraduationCap, Brain, TrendingUp, Target, CheckCircle2, AlertCircle, Sparkles, ShieldCheck, DollarSign, BookOpen, Rocket, Award } from 'lucide-react'
 
-const ResumeSummaryView = ({ resume, watsonSummary, skills: providedSkills }) => {
+const ResumeSummaryView = ({ 
+  resume, 
+  watsonSummary, 
+  skills: providedSkills,
+  matchedJobs = [],
+  skillGaps = [],
+  salaryBoost = null,
+  roadmap = null,
+  predictedRoles = []
+}) => {
   if (!resume) {
     return (
       <div className="card-base rounded-[32px] p-8">
@@ -186,6 +195,197 @@ const ResumeSummaryView = ({ resume, watsonSummary, skills: providedSkills }) =>
               </ol>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Career Analytics & Insights */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Matched Jobs Summary */}
+        {matchedJobs && matchedJobs.length > 0 && (
+          <div className="card-base rounded-[24px] p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Rocket className="w-5 h-5 text-[var(--rg-accent)]" />
+              <h3 className="text-lg font-semibold text-[var(--rg-text-primary)]">Job Market Fit</h3>
+            </div>
+            <div className="mb-4">
+              <div className="text-3xl font-bold text-[var(--rg-text-primary)]">{matchedJobs.length}</div>
+              <div className="text-sm text-[var(--rg-text-secondary)]">Matching opportunities found</div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm text-[var(--rg-text-secondary)]">Top matches:</div>
+              {matchedJobs.slice(0, 3).map((job, idx) => (
+                <div key={idx} className="p-3 bg-[var(--rg-bg-muted)] rounded-lg">
+                  <div className="font-medium text-[var(--rg-text-primary)] text-sm">{job.title}</div>
+                  <div className="text-xs text-[var(--rg-text-secondary)] mt-1">{job.company}</div>
+                  {job.matchScore && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-[var(--rg-border)] rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-[var(--rg-accent)]" 
+                          style={{ width: `${job.matchScore}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-[var(--rg-accent)]">{job.matchScore}%</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Salary Boost Potential */}
+        {salaryBoost && salaryBoost.potentialIncrease && (
+          <div className="card-base rounded-[24px] p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <DollarSign className="w-5 h-5 text-[var(--rg-accent)]" />
+              <h3 className="text-lg font-semibold text-[var(--rg-text-primary)]">Salary Growth Potential</h3>
+            </div>
+            <div className="mb-4">
+              <div className="text-3xl font-bold text-[var(--rg-accent)]">
+                +{salaryBoost.potentialIncrease}%
+              </div>
+              <div className="text-sm text-[var(--rg-text-secondary)]">Potential increase with skill upgrades</div>
+            </div>
+            {salaryBoost.currentRange && (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between items-center p-2 bg-[var(--rg-bg-muted)] rounded">
+                  <span className="text-[var(--rg-text-secondary)]">Current range:</span>
+                  <span className="font-semibold text-[var(--rg-text-primary)]">{salaryBoost.currentRange}</span>
+                </div>
+                {salaryBoost.targetRange && (
+                  <div className="flex justify-between items-center p-2 bg-[var(--rg-bg-muted)] rounded border-2 border-[var(--rg-accent)]">
+                    <span className="text-[var(--rg-text-secondary)]">Target range:</span>
+                    <span className="font-semibold text-[var(--rg-accent)]">{salaryBoost.targetRange}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            {salaryBoost.topSkillsForBoost && salaryBoost.topSkillsForBoost.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-[var(--rg-border)]">
+                <div className="text-xs text-[var(--rg-text-secondary)] mb-2">Focus on these skills:</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {salaryBoost.topSkillsForBoost.slice(0, 5).map((skill, idx) => (
+                    <span key={idx} className="text-xs px-2 py-1 bg-[var(--rg-accent)] text-white rounded-full font-medium">
+                      {typeof skill === 'string' ? skill : skill.skill || skill.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Predicted Career Roles */}
+        {predictedRoles && predictedRoles.length > 0 && (
+          <div className="card-base rounded-[24px] p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Award className="w-5 h-5 text-[var(--rg-accent)]" />
+              <h3 className="text-lg font-semibold text-[var(--rg-text-primary)]">Career Pathways</h3>
+            </div>
+            <div className="space-y-2">
+              {predictedRoles.slice(0, 4).map((role, idx) => (
+                <div key={idx} className="p-3 bg-[var(--rg-bg-muted)] rounded-lg">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <div className="font-medium text-[var(--rg-text-primary)] text-sm">
+                        {typeof role === 'string' ? role : role.role || role.title || role.name}
+                      </div>
+                      {role.confidence && (
+                        <div className="text-xs text-[var(--rg-text-secondary)] mt-1">
+                          Match: {role.confidence}%
+                        </div>
+                      )}
+                    </div>
+                    {role.confidence && (
+                      <div className="text-xs font-semibold text-[var(--rg-accent)]">
+                        #{idx + 1}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Skill Gaps Analysis */}
+        {skillGaps && skillGaps.length > 0 && (
+          <div className="card-base rounded-[24px] p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <BookOpen className="w-5 h-5 text-[var(--rg-accent)]" />
+              <h3 className="text-lg font-semibold text-[var(--rg-text-primary)]">Skills to Acquire</h3>
+            </div>
+            <div className="mb-3 text-sm text-[var(--rg-text-secondary)]">
+              Bridge these gaps to unlock more opportunities:
+            </div>
+            <div className="space-y-2">
+              {skillGaps.slice(0, 6).map((gap, idx) => (
+                <div key={idx} className="flex items-center justify-between p-2 bg-[var(--rg-bg-muted)] rounded-lg">
+                  <span className="text-sm text-[var(--rg-text-primary)] font-medium">
+                    {typeof gap === 'string' ? gap : gap.skill || gap.name}
+                  </span>
+                  {gap.demandScore && (
+                    <span className="text-xs px-2 py-0.5 bg-[var(--rg-accent)] text-white rounded-full">
+                      {gap.demandScore}% demand
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Career Roadmap Summary */}
+      {roadmap && roadmap.phases && roadmap.phases.length > 0 && (
+        <div className="card-base rounded-[24px] p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="w-6 h-6 text-[var(--rg-accent)]" />
+            <h3 className="text-lg font-semibold text-[var(--rg-text-primary)]">Your Personalized Career Roadmap</h3>
+          </div>
+          <div className="mb-4 p-4 bg-[var(--rg-bg-muted)] rounded-lg">
+            <p className="text-[var(--rg-text-secondary)] text-sm leading-relaxed">
+              Based on your current skills and target roles, here's a strategic path to advance your career over the next {roadmap.phases.length} phases.
+            </p>
+          </div>
+          <div className="space-y-4">
+            {roadmap.phases.map((phase, idx) => (
+              <div key={idx} className="relative pl-6">
+                <div className="absolute left-0 top-3 w-4 h-4 rounded-full bg-[var(--rg-accent)] border-4 border-white shadow-lg z-10" />
+                {idx < roadmap.phases.length - 1 && (
+                  <div className="absolute left-[7px] top-7 w-0.5 h-full bg-[var(--rg-border)]" />
+                )}
+                <div className="bg-white border border-[var(--rg-border)] rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-[var(--rg-text-primary)]">
+                      {phase.phase || phase.title || `Phase ${idx + 1}`}
+                    </h4>
+                    {phase.duration && (
+                      <span className="text-xs px-2 py-1 bg-[var(--rg-bg-muted)] text-[var(--rg-text-secondary)] rounded-full">
+                        {phase.duration}
+                      </span>
+                    )}
+                  </div>
+                  {phase.description && (
+                    <p className="text-sm text-[var(--rg-text-secondary)] mb-3">{phase.description}</p>
+                  )}
+                  {phase.skills && phase.skills.length > 0 && (
+                    <div>
+                      <div className="text-xs text-[var(--rg-text-secondary)] mb-2">Focus skills:</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {phase.skills.map((skill, skillIdx) => (
+                          <span key={skillIdx} className="text-xs px-2 py-1 bg-[var(--rg-bg-muted)] text-[var(--rg-text-primary)] rounded-full border border-[var(--rg-border)]">
+                            {typeof skill === 'string' ? skill : skill.skill || skill.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

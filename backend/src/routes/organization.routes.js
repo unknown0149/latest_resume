@@ -56,10 +56,17 @@ router.post('/', authenticate, async (req, res) => {
  */
 router.get('/', authenticate, async (req, res) => {
   try {
-    const organizations = await Organization.getUserOrganizations(req.user._id)
+    const organizations = await Organization.find({
+      $or: [
+        { owner: req.user._id },
+        { 'members.userId': req.user._id }
+      ],
+      status: 'active'
+    })
       .populate('owner', 'name email')
       .populate('members.userId', 'name email avatar')
-      .populate('subscriptionId');
+      .populate('subscriptionId')
+      .lean();
     
     res.json({
       success: true,

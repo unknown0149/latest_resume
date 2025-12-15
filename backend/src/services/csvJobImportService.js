@@ -85,7 +85,7 @@ export async function importJobsFromCSV(filePath) {
               allSkills: [...new Set([...requiredSkills, ...preferredSkills])],
             },
             source: {
-              platform: 'manual',
+              platform: 'seed',
               sourceUrl: row.source_url || null,
             },
             postedDate,
@@ -104,8 +104,8 @@ export async function importJobsFromCSV(filePath) {
         logger.info(`CSV parsing complete: ${jobs.length} jobs parsed, ${errorCount} errors`);
         
         try {
-          // Clear existing jobs or update
-          await Job.deleteMany({ 'source.platform': 'manual' });
+          // Clear existing CSV-imported jobs (seed platform)
+          await Job.deleteMany({ 'source.platform': 'seed' });
           logger.info('Cleared existing CSV-imported jobs');
           
           // Insert new jobs

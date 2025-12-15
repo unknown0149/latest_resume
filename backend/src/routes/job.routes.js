@@ -485,8 +485,9 @@ router.get('/jobs/match/:resumeId', async (req, res) => {
         minSalary: resume.parsed_data?.expectedSalary
       },
       verifyWithWatson: enforceWatson,
-      // Don't filter by sourcePlatforms - allow all jobs from CSV regardless of their platform value
-      sourcePlatforms: ['linkedin', 'indeed', 'glassdoor', 'real', 'seed', 'api']
+      // Exclude manual and direct platforms (recruiter posts) from marketplace matches
+      sourcePlatforms: ['linkedin', 'indeed', 'glassdoor', 'real', 'seed', 'api'],
+      excludePlatforms: ['manual', 'direct']
     });
     
     res.json({
@@ -698,6 +699,344 @@ router.get('/jobs/recruiter', authenticate, requireRecruiter, requireDatabase, a
     });
   } catch (error) {
     console.error('Error fetching recruiter jobs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch jobs',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/jobs/live
+ * Get live jobs from CSV/seed data only (excludes recruiter-posted jobs)
+ * Supports filtering by location, remote, employment type
+ */
+router.get('/jobs/live', async (req, res) => {
+  try {
+    const {
+      limit = 50,
+      page,
+      offset,
+      remote,
+      isRemote,
+      employmentType,
+      city,
+      location,
+      experienceLevel,
+      company,
+      q,
+      search,
+    } = req.query;
+
+    const numericLimit = Math.min(parseInt(limit, 10) || 50, 100);
+    const offsetProvided = typeof offset !== 'undefined';
+    const requestedPage = Math.max(parseInt(page, 10) || 1, 1);
+    const skip = offsetProvided
+      ? Math.max(parseInt(offset, 10) || 0, 0)
+      : (requestedPage - 1) * numericLimit;
+
+    const query = { 
+      status: 'active',
+      $or: [
+        { postedBy: { $exists: false } },
+        { postedBy: null }
+      ] // Exclude recruiter-posted jobs - includes all CSV/seed/external jobs
+    };
+
+    const remoteFlag = remote ?? isRemote;
+    if (remoteFlag === 'true') {
+      query['location.isRemote'] = true;
+    } else if (remoteFlag === 'false') {
+      query['location.isRemote'] = { $ne: true };
+    }
+
+    if (employmentType) {
+      query.employmentType = employmentType;
+    }
+
+    if (experienceLevel) {
+      query.experienceLevel = experienceLevel;
+    }
+
+    if (company) {
+      query['company.name'] = new RegExp(company, 'i');
+    }
+
+    const cityFilter = city || location;
+    if (cityFilter) {
+      const cityRegex = new RegExp(cityFilter, 'i');
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { 'location.city': cityRegex },
+          { 'location.state': cityRegex },
+          { 'location.country': cityRegex }
+        ]
+      });
+    }
+
+    const searchTerm = q || search;
+    if (searchTerm) {
+      const searchRegex = new RegExp(searchTerm, 'i');
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { title: searchRegex },
+          { description: searchRegex },
+          { tag: searchRegex },
+          { 'company.name': searchRegex }
+        ]
+      });
+    }
+
+    const jobs = await Job.find(query)
+      .sort({ createdAt: -1 })
+      .limit(numericLimit)
+      .skip(skip)
+      .lean();
+
+    const total = await Job.countDocuments(query);
+    
+    logger.info(`Live jobs query returned ${jobs.length} jobs out of ${total} total`);
+
+    res.json({
+      success: true,
+      jobs,
+      pagination: {
+        total,
+        returned: jobs.length,
+        limit: numericLimit,
+        offset: skip,
+        page: requestedPage,
+        nextOffset: skip + jobs.length < total ? skip + jobs.length : null
+      }
+    });
+  } catch (err) {
+    logger.error('Error fetching live jobs:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch live jobs' });
+  }
+});
+
+/**
+ * GET /api/jobs/recruiter-posted
+ * Get jobs posted by recruiters only (excludes CSV/seed jobs)
+ * Supports filtering by location, remote, employment type
+ */
+router.get('/jobs/recruiter-posted', async (req, res) => {
+  try {
+    const {
+      limit = 50,
+      page,
+      offset,
+      remote,
+      isRemote,
+      employmentType,
+      city,
+      location,
+      experienceLevel,
+      company,
+      q,
+      search,
+    } = req.query;
+
+    const numericLimit = Math.min(parseInt(limit, 10) || 50, 100);
+    const offsetProvided = typeof offset !== 'undefined';
+    const requestedPage = Math.max(parseInt(page, 10) || 1, 1);
+    const skip = offsetProvided
+      ? Math.max(parseInt(offset, 10) || 0, 0)
+      : (requestedPage - 1) * numericLimit;
+
+    const query = { 
+      status: 'active',
+      postedBy: { $exists: true, $ne: null } // Only recruiter-posted jobs (not null)
+    };
+
+    const remoteFlag = remote ?? isRemote;
+    if (remoteFlag === 'true') {
+      query['location.isRemote'] = true;
+    } else if (remoteFlag === 'false') {
+      query['location.isRemote'] = { $ne: true };
+    }
+
+    if (employmentType) {
+      query.employmentType = employmentType;
+    }
+
+    if (experienceLevel) {
+      query.experienceLevel = experienceLevel;
+    }
+
+    if (company) {
+      query['company.name'] = new RegExp(company, 'i');
+    }
+
+    const cityFilter = city || location;
+    if (cityFilter) {
+      const cityRegex = new RegExp(cityFilter, 'i');
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { 'location.city': cityRegex },
+          { 'location.state': cityRegex },
+          { 'location.country': cityRegex }
+        ]
+      });
+    }
+
+    const searchTerm = q || search;
+    if (searchTerm) {
+      const searchRegex = new RegExp(searchTerm, 'i');
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { title: searchRegex },
+          { description: searchRegex },
+          { tag: searchRegex },
+          { 'company.name': searchRegex }
+        ]
+      });
+    }
+
+    const jobs = await Job.find(query)
+      .populate('postedBy', 'name email')
+      .populate('organizationId', 'name slug')
+      .sort({ createdAt: -1 })
+      .limit(numericLimit)
+      .skip(skip)
+      .lean();
+
+    const total = await Job.countDocuments(query);
+    
+    logger.info(`Recruiter jobs query returned ${jobs.length} jobs out of ${total} total`);
+
+    res.json({
+      success: true,
+      jobs,
+      pagination: {
+        total,
+        returned: jobs.length,
+        limit: numericLimit,
+        offset: skip,
+        page: requestedPage,
+        nextOffset: skip + jobs.length < total ? skip + jobs.length : null
+      }
+    });
+  } catch (err) {
+    logger.error('Error fetching recruiter-posted jobs:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch recruiter-posted jobs' });
+  }
+});
+
+/**
+ * GET /api/jobs/all
+ * Get all active jobs (for applicants to browse)
+ * Supports filtering by location, remote, employment type
+ */
+router.get('/jobs/all', async (req, res) => {
+  try {
+    const {
+      limit = 50,
+      page,
+      offset,
+      remote,
+      isRemote,
+      employmentType,
+      city,
+      location,
+      experienceLevel,
+      company,
+      q,
+      search,
+      sourcePlatform
+    } = req.query;
+
+    const numericLimit = Math.min(parseInt(limit, 10) || 50, 100);
+    const offsetProvided = typeof offset !== 'undefined';
+    const requestedPage = Math.max(parseInt(page, 10) || 1, 1);
+    const skip = offsetProvided
+      ? Math.max(parseInt(offset, 10) || 0, 0)
+      : (requestedPage - 1) * numericLimit;
+
+    const query = { status: 'active' };
+
+    // Filter by source platform if specified (comma-separated)
+    if (sourcePlatform) {
+      const platforms = sourcePlatform.split(',').map(p => p.trim());
+      query['source.platform'] = { $in: platforms };
+    }
+
+    const remoteFlag = remote ?? isRemote;
+    if (remoteFlag === 'true') {
+      query['location.isRemote'] = true;
+    } else if (remoteFlag === 'false') {
+      query['location.isRemote'] = { $ne: true };
+    }
+
+    if (employmentType) {
+      query.employmentType = employmentType;
+    }
+
+    if (experienceLevel) {
+      query.experienceLevel = experienceLevel;
+    }
+
+    if (company) {
+      query['company.name'] = new RegExp(company, 'i');
+    }
+
+    const cityFilter = city || location;
+    if (cityFilter) {
+      const cityRegex = new RegExp(cityFilter, 'i');
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { 'location.city': cityRegex },
+          { 'location.state': cityRegex },
+          { 'location.country': cityRegex }
+        ]
+      });
+    }
+
+    const searchTerm = q || search;
+    if (searchTerm) {
+      const searchRegex = new RegExp(searchTerm, 'i');
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { title: searchRegex },
+          { description: searchRegex },
+          { tag: searchRegex },
+          { 'company.name': searchRegex }
+        ]
+      });
+    }
+
+    const jobs = await Job.find(query)
+      .sort({ createdAt: -1 })
+      .limit(numericLimit)
+      .skip(skip)
+      .lean();
+
+    const total = await Job.countDocuments(query);
+    const currentPage = Math.floor(skip / numericLimit) + 1;
+    const totalPages = Math.max(1, Math.ceil(total / numericLimit));
+    const nextOffset = skip + jobs.length < total ? skip + jobs.length : null;
+
+    res.json({
+      success: true,
+      jobs,
+      pagination: {
+        total,
+        page: currentPage,
+        limit: numericLimit,
+        pages: totalPages,
+        offset: skip,
+        nextOffset
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching jobs:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch jobs',
@@ -1487,116 +1826,6 @@ router.post('/jobs/create', authenticate, requireRecruiter, requireDatabase, asy
     res.status(500).json({
       success: false,
       message: 'Failed to create job',
-      error: error.message
-    });
-  }
-});
-
-/**
- * GET /api/jobs/all
- * Get all active jobs (for applicants to browse)
- * Supports filtering by location, remote, employment type
- */
-router.get('/jobs/all', async (req, res) => {
-  try {
-    const {
-      limit = 50,
-      page,
-      offset,
-      remote,
-      isRemote,
-      employmentType,
-      city,
-      location,
-      experienceLevel,
-      company,
-      q,
-      search
-    } = req.query;
-
-    const numericLimit = Math.min(parseInt(limit, 10) || 50, 100);
-    const offsetProvided = typeof offset !== 'undefined';
-    const requestedPage = Math.max(parseInt(page, 10) || 1, 1);
-    const skip = offsetProvided
-      ? Math.max(parseInt(offset, 10) || 0, 0)
-      : (requestedPage - 1) * numericLimit;
-
-    const query = { status: 'active' };
-
-    const remoteFlag = remote ?? isRemote;
-    if (remoteFlag === 'true') {
-      query['location.isRemote'] = true;
-    } else if (remoteFlag === 'false') {
-      query['location.isRemote'] = { $ne: true };
-    }
-
-    if (employmentType) {
-      query.employmentType = employmentType;
-    }
-
-    if (experienceLevel) {
-      query.experienceLevel = experienceLevel;
-    }
-
-    if (company) {
-      query['company.name'] = new RegExp(company, 'i');
-    }
-
-    const cityFilter = city || location;
-    if (cityFilter) {
-      const cityRegex = new RegExp(cityFilter, 'i');
-      query.$and = query.$and || [];
-      query.$and.push({
-        $or: [
-          { 'location.city': cityRegex },
-          { 'location.state': cityRegex },
-          { 'location.country': cityRegex }
-        ]
-      });
-    }
-
-    const searchTerm = q || search;
-    if (searchTerm) {
-      const searchRegex = new RegExp(searchTerm, 'i');
-      query.$and = query.$and || [];
-      query.$and.push({
-        $or: [
-          { title: searchRegex },
-          { description: searchRegex },
-          { tag: searchRegex },
-          { 'company.name': searchRegex }
-        ]
-      });
-    }
-
-    const jobs = await Job.find(query)
-      .sort({ createdAt: -1 })
-      .limit(numericLimit)
-      .skip(skip)
-      .lean();
-
-    const total = await Job.countDocuments(query);
-    const currentPage = Math.floor(skip / numericLimit) + 1;
-    const totalPages = Math.max(1, Math.ceil(total / numericLimit));
-    const nextOffset = skip + jobs.length < total ? skip + jobs.length : null;
-
-    res.json({
-      success: true,
-      jobs,
-      pagination: {
-        total,
-        page: currentPage,
-        limit: numericLimit,
-        pages: totalPages,
-        offset: skip,
-        nextOffset
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching jobs:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch jobs',
       error: error.message
     });
   }

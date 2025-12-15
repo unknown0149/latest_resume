@@ -118,18 +118,19 @@ const UploadPage = () => {
         // Add skills you have with actual proficiency from backend (0-100)
         skillAnalysis.skillsHave?.forEach(skillObj => {
           const skillName = skillObj.skill || skillObj
-          const proficiency = skillObj.proficiency || 50 // Use real proficiency from backend
-          
-          // Check if skill is verified
           const verification = verificationMap.get(skillName.toLowerCase())
-          
+          const verificationScore = verification?.score
+          const hasNumericScore = typeof verificationScore === 'number' && !Number.isNaN(verificationScore)
+          const proficiency = hasNumericScore ? verificationScore : null
+
           allSkills.set(skillName, {
             skill: skillName,
-            current: proficiency, // Real proficiency level (0-100)
+            current: hasNumericScore ? verificationScore : 0,
             required: 100,
             level: skillObj.level || 'Intermediate',
             verified: verification?.verified || false,
-            verificationScore: verification?.score || null
+            verificationScore: verificationScore || null,
+            needsVerification: !hasNumericScore
           })
         })
 
@@ -140,17 +141,25 @@ const UploadPage = () => {
           if (!name) return
           const key = name.toLowerCase()
           if (!allSkills.has(name)) {
+            const prevScore = prev.verificationScore || prev.score
             allSkills.set(name, {
               skill: name,
-              current: prev.proficiency || prev.score || 80,
+              current: typeof prevScore === 'number' ? prevScore : 0,
               required: 100,
               level: prev.level || 'Verified',
               verified: true,
-              verificationScore: prev.verificationScore || prev.score || null
+              verificationScore: typeof prevScore === 'number' ? prevScore : null,
+              needsVerification: !(typeof prevScore === 'number')
             })
           } else {
             const existing = allSkills.get(name)
-            allSkills.set(name, { ...existing, verified: true, verificationScore: existing.verificationScore || prev.verificationScore || prev.score || null })
+            const mergedScore = existing.verificationScore || prev.verificationScore || prev.score
+            allSkills.set(name, {
+              ...existing,
+              verified: true,
+              verificationScore: typeof mergedScore === 'number' ? mergedScore : existing.verificationScore || null,
+              needsVerification: !(typeof mergedScore === 'number')
+            })
           }
           // Also seed verification map so downstream enrichedSkillsHave marks it verified
           if (!verificationMap.has(key)) {
@@ -178,11 +187,15 @@ const UploadPage = () => {
         const enrichedSkillsHave = (skillAnalysis.skillsHave || []).map(skillObj => {
           const skillName = skillObj.skill || skillObj
           const verification = verificationMap.get(skillName.toLowerCase())
+          const hasNumericScore = typeof verification?.score === 'number' && !Number.isNaN(verification.score)
           return {
             ...skillObj,
             skill: skillName,
             verified: verification?.verified || false,
-            verificationScore: verification?.score || null
+            verificationScore: hasNumericScore ? verification.score : null,
+            score: hasNumericScore ? verification.score : null,
+            proficiency: hasNumericScore ? verification.score : null,
+            needsVerification: !hasNumericScore
           }
         })
 
@@ -192,11 +205,15 @@ const UploadPage = () => {
           const name = prev.skill || prev.name
           if (!name) return
           if (existingNames.has(name.toLowerCase())) return
+          const cachedScore = prev.verificationScore || prev.score
           enrichedSkillsHave.push({
             ...prev,
             skill: name,
             verified: true,
-            verificationScore: prev.verificationScore || prev.score || null,
+            verificationScore: typeof cachedScore === 'number' ? cachedScore : null,
+            score: typeof cachedScore === 'number' ? cachedScore : null,
+            proficiency: typeof cachedScore === 'number' ? cachedScore : null,
+            needsVerification: !(typeof cachedScore === 'number'),
             source: 'cached-verification'
           })
         })

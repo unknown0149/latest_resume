@@ -19,8 +19,8 @@ const savedJobSchema = new mongoose.Schema({
     index: true,
   },
   
-  // Organization for saved jobs
-  collection: {
+  // Organization for saved jobs (renamed from 'collection' to avoid reserved keyword)
+  collectionName: {
     type: String,
     default: 'default',
     index: true,
@@ -58,7 +58,7 @@ const savedJobSchema = new mongoose.Schema({
 savedJobSchema.index({ userId: 1, jobId: 1 }, { unique: true });
 
 // Indexes for filtering
-savedJobSchema.index({ userId: 1, collection: 1 });
+savedJobSchema.index({ userId: 1, collectionName: 1 });
 savedJobSchema.index({ userId: 1, tags: 1 });
 
 // Methods

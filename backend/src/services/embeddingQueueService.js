@@ -143,8 +143,15 @@ async function processQueueItem(item) {
     }
     
   } catch (error) {
-    logger.error(`Failed to process ${item.type} ${item.id}:`, error.message);
-    return { success: false, error: error.message };
+    logger.error(`Failed to process ${item.type} ${item.id}:`);
+    logger.error(`Error message: ${error.message || 'No message'}`);
+    logger.error(`Error name: ${error.name || 'No name'}`);
+    logger.error(`Error stack: ${error.stack || 'No stack'}`);
+    logger.error(`Full error object: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`);
+    if (error.errors) {
+      logger.error(`Validation errors:`, JSON.stringify(error.errors, null, 2));
+    }
+    return { success: false, error: error.message || error.toString() };
   }
 }
 

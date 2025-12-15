@@ -7,6 +7,7 @@ import {
   MapPin,
   Briefcase,
   IndianRupee,
+  DollarSign,
   ExternalLink,
   X,
   Award,
@@ -28,11 +29,14 @@ const PAGE_SIZE = 9
 
 const JobsListingPage = () => {
   const [searchParams] = useSearchParams()
-  const { parsedResume, skillGaps } = useResumeContext()
+  const { parsedResume, setParsedResume, skillGaps } = useResumeContext()
   const [jobs, setJobs] = useState([])
+  const [liveJobs, setLiveJobs] = useState([])
+  const [recruiterJobs, setRecruiterJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showMatched, setShowMatched] = useState(searchParams.get('matched') === 'true')
+  const [activeJobType, setActiveJobType] = useState('all') // 'all', 'live', 'recruiter'
   const [page, setPage] = useState(1)
   const [searchMeta, setSearchMeta] = useState({ total: 0, returned: 0, nextOffset: null })
   const offsetHistoryRef = useRef([0])
@@ -129,6 +133,8 @@ const JobsListingPage = () => {
             missingSkills: match.missingSkills || []
           }))
           setJobs(normalized)
+          setLiveJobs([])
+          setRecruiterJobs([])
           setSearchMeta({
             total: normalized.length,
             returned: normalized.length,
@@ -161,23 +167,61 @@ const JobsListingPage = () => {
         if (sortBy) params.set('sortBy', sortBy)
         if (sortOrder) params.set('sortOrder', sortOrder)
 
-        // Use /all endpoint to get jobs from all recruiters
-        const response = await api.get(`/jobs/all?${params.toString()}`)
-        const data = response.data || {}
-        const fetchedJobs = data.jobs || []
+        // Fetch both live jobs and recruiter-posted jobs separately
+        let fetchedLiveJobs = []
+        let fetchedRecruiterJobs = []
+        let liveTotal = 0
+        let recruiterTotal = 0
+        
+        try {
+          const [liveResponse, recruiterResponse] = await Promise.all([
+            api.get(`/jobs/live?${params.toString()}`).catch(err => {
+              console.warn('Live jobs endpoint failed, falling back to empty:', err.message)
+              return { data: { success: false, jobs: [], pagination: { total: 0 } } }
+            }),
+            api.get(`/jobs/recruiter-posted?${params.toString()}`).catch(err => {
+              console.warn('Recruiter jobs endpoint failed, falling back to empty:', err.message)
+              return { data: { success: false, jobs: [], pagination: { total: 0 } } }
+            })
+          ])
 
-        setJobs(fetchedJobs)
+          const liveData = liveResponse.data || {}
+          const recruiterData = recruiterResponse.data || {}
+          
+          fetchedLiveJobs = liveData.jobs || []
+          fetchedRecruiterJobs = recruiterData.jobs || []
+          liveTotal = liveData.pagination?.total || 0
+          recruiterTotal = recruiterData.pagination?.total || 0
+        } catch (endpointError) {
+          console.warn('New endpoints not available, falling back to /jobs/all:', endpointError.message)
+          
+          // Fallback to old endpoint if new ones don't exist
+          const response = await api.get(`/jobs/all?${params.toString()}`)
+          const data = response.data || {}
+          const allJobsData = data.jobs || []
+          
+          // Separate jobs based on postedBy field
+          fetchedLiveJobs = allJobsData.filter(job => !job.postedBy)
+          fetchedRecruiterJobs = allJobsData.filter(job => job.postedBy)
+          liveTotal = fetchedLiveJobs.length
+          recruiterTotal = fetchedRecruiterJobs.length
+        }
+
+        setLiveJobs(fetchedLiveJobs)
+        setRecruiterJobs(fetchedRecruiterJobs)
+        
+        // Combine for 'all' view
+        const allJobs = [...fetchedLiveJobs, ...fetchedRecruiterJobs]
+        setJobs(allJobs)
+
         setSearchMeta({
-          total: data.pagination?.total ?? fetchedJobs.length,
-          returned: fetchedJobs.length,
-          nextOffset: data.pagination?.page < data.pagination?.pages ? data.pagination.page + 1 : null
+          total: liveTotal + recruiterTotal,
+          returned: allJobs.length,
+          nextOffset: null
         })
 
         const nextOffsets = [...offsets]
         nextOffsets[targetPage - 1] = cursor
-        if (data.pagination && data.pagination.page < data.pagination.pages) {
-          nextOffsets[targetPage] = data.pagination.page * PAGE_SIZE
-        }
         offsetHistoryRef.current = nextOffsets
         setPage(targetPage)
       } catch (err) {
@@ -277,7 +321,8 @@ const JobsListingPage = () => {
     }
 
     // For external/live jobs with an applicationUrl and no organization (not recruiter-owned), open the link directly
-    if (job.applicationUrl && !job.organizationId) {
+    const isExternalJob = job.applicationUrl && !job.organizationId && job.source?.platform !== 'manual'
+    if (isExternalJob) {
       window.open(job.applicationUrl, '_blank', 'noopener,noreferrer')
       return
     }
@@ -288,16 +333,43 @@ const JobsListingPage = () => {
       return
     }
 
-    if (!parsedResume?.resumeId) {
-      toast.error('Upload your resume before applying to jobs.')
-      navigate('/upload')
-      return
+    // Check if resume exists in context, if not try to fetch from API
+    let userResumeId = parsedResume?.resumeId
+
+    if (!userResumeId) {
+      try {
+        // Try to fetch user's latest resume from API
+        const resumesResponse = await api.get('/resume')
+        const resumes = resumesResponse.data?.resumes || []
+        
+        if (resumes.length > 0) {
+          const latestResume = resumes[0]
+          userResumeId = latestResume.resumeId
+          
+          // Update context with resume data
+          if (latestResume.parsed_resume) {
+            setParsedResume({
+              resumeId: latestResume.resumeId,
+              ...latestResume.parsed_resume
+            })
+          }
+        } else {
+          toast.error('Upload your resume before applying to jobs.')
+          navigate('/upload')
+          return
+        }
+      } catch (err) {
+        console.error('Failed to fetch resume:', err)
+        toast.error('Upload your resume before applying to jobs.')
+        navigate('/upload')
+        return
+      }
     }
 
     try {
       setApplyingJobId(jobIdentifier)
       await api.post(`/jobs/${jobIdentifier}/apply`, {
-        resumeId: parsedResume.resumeId
+        resumeId: userResumeId
       })
       toast.success('Application submitted!')
       markJobAsApplied(jobIdentifier)
@@ -308,7 +380,7 @@ const JobsListingPage = () => {
     } finally {
       setApplyingJobId(null)
     }
-  }, [isAuthenticated, parsedResume?.resumeId, navigate, markJobAsApplied])
+  }, [isAuthenticated, parsedResume?.resumeId, navigate, markJobAsApplied, setParsedResume])
 
   const clearFilters = () => {
     setSearch('')
@@ -447,9 +519,19 @@ const JobsListingPage = () => {
   }, [company, salaryMin, salaryMax, showMatched, search, location, employmentType, experienceLevel, isRemote, tag])
 
   const processedJobs = useMemo(() => {
-    const sorted = sortJobs(jobs)
+    // Determine which jobs to show based on active tab
+    let jobsToProcess = jobs
+    if (!showMatched) {
+      if (activeJobType === 'live') {
+        jobsToProcess = liveJobs
+      } else if (activeJobType === 'recruiter') {
+        jobsToProcess = recruiterJobs
+      }
+    }
+    
+    const sorted = sortJobs(jobsToProcess)
     return sorted.filter(filterPredicate)
-  }, [jobs, sortJobs, filterPredicate])
+  }, [jobs, liveJobs, recruiterJobs, activeJobType, showMatched, sortJobs, filterPredicate])
 
   const totalPages = showMatched
     ? Math.max(1, Math.ceil(processedJobs.length / PAGE_SIZE))
@@ -499,6 +581,17 @@ const JobsListingPage = () => {
               <h3 className="text-xl font-semibold text-primary leading-snug line-clamp-2">{job.title}</h3>
             </div>
             <div className="flex flex-col items-end gap-2">
+              {/* Job Source Badge */}
+              {job.postedBy && job.source?.platform === 'manual' && (
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 inline-flex items-center gap-1">
+                  <Award className="w-3.5 h-3.5" /> Recruiter
+                </span>
+              )}
+              {!job.postedBy && (job.source?.platform === 'seed' || job.source?.platform === 'real') && (
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 inline-flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5" /> Live
+                </span>
+              )}
               {showMatched && job.matchScore && (
                 <span className="px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-700">
                   {Math.round(job.matchScore)}% match
@@ -926,6 +1019,44 @@ const JobsListingPage = () => {
                   <X className="w-4 h-4 cursor-pointer" onClick={() => setEmploymentType('')} />
                 </span>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Job Type Tabs */}
+        {!showMatched && (
+          <div className="max-w-7xl mx-auto px-4 mt-8">
+            <div className="flex gap-2 mb-6 border-b border-gray-200">
+              <button
+                onClick={() => setActiveJobType('all')}
+                className={`px-6 py-3 font-medium transition-colors ${
+                  activeJobType === 'all'
+                    ? 'border-b-2 border-primary-600 text-primary-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                All Jobs ({liveJobs.length + recruiterJobs.length})
+              </button>
+              <button
+                onClick={() => setActiveJobType('live')}
+                className={`px-6 py-3 font-medium transition-colors ${
+                  activeJobType === 'live'
+                    ? 'border-b-2 border-primary-600 text-primary-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Live Jobs ({liveJobs.length})
+              </button>
+              <button
+                onClick={() => setActiveJobType('recruiter')}
+                className={`px-6 py-3 font-medium transition-colors ${
+                  activeJobType === 'recruiter'
+                    ? 'border-b-2 border-primary-600 text-primary-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Recruiter Jobs ({recruiterJobs.length})
+              </button>
             </div>
           </div>
         )}

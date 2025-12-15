@@ -30,7 +30,10 @@ const extractFromPDFWithPdfjs = async (filePath) => {
     verbosity: 0,
     isEvalSupported: false,
     stopAtErrors: false,
-    password: ''
+    ignoreErrors: true, // Ignore minor errors
+    password: '',
+    cMapUrl: null,
+    cMapPacked: false
   })
   const pdfDocument = await loadingTask.promise
   
@@ -95,7 +98,15 @@ export const extractFromPDF = async (filePath) => {
     const dataBuffer = await fs.readFile(filePath)
     const data = await pdfParse(dataBuffer, {
       max: 0, // no page limit
-      version: 'v2.0.550'
+      version: 'v2.0.550',
+      // More lenient parsing for corrupted PDFs
+      pagerender: (pageData) => {
+        return pageData.getTextContent({ normalizeWhitespace: true })
+          .then(textContent => {
+            return textContent.items.map(item => item.str).join(' ')
+          })
+          .catch(() => '') // Ignore page-level errors
+      }
     })
 
     if (data.text && data.text.trim().length > 50) {
@@ -110,8 +121,55 @@ export const extractFromPDF = async (filePath) => {
     lastError = parseError
   }
   
+  // Try a more lenient approach - read with ignoreErrors
+  try {
+    logger.info('Attempting PDF extraction with lenient settings...')
+    const dataBuffer = await fs.readFile(filePath)
+    
+    // Try loading with minimal validation
+    const loadingTask = pdfjsLib.getDocument({
+      data: dataBuffer,
+      verbosity: 0,
+      stopAtErrors: false,
+      ignoreErrors: true,
+      disableFontFace: true,
+      useSystemFonts: true,
+      // Skip validation that might fail on corrupted PDFs
+      pdfBug: false,
+      maxImageSize: -1,
+      cMapUrl: null,
+      cMapPacked: false
+    })
+    
+    const pdfDoc = await loadingTask.promise
+    let extractedText = ''
+    
+    // Try to extract from each page, ignoring errors
+    for (let i = 1; i <= pdfDoc.numPages; i++) {
+      try {
+        const page = await pdfDoc.getPage(i)
+        const content = await page.getTextContent()
+        const pageText = content.items.map(item => item.str).join(' ')
+        extractedText += pageText + '\n'
+      } catch (pageErr) {
+        logger.warn(`Skipping corrupted page ${i}`)
+        continue
+      }
+    }
+    
+    if (extractedText.trim().length > 50) {
+      return {
+        text: extractedText,
+        pages: pdfDoc.numPages
+      }
+    }
+  } catch (lenientError) {
+    logger.error(`Lenient PDF extraction failed: ${lenientError.message}`)
+    lastError = lenientError
+  }
+  
   // All methods failed
-  throw new Error(`Failed to extract text from PDF. The file may be severely corrupted or password-protected. Last error: ${lastError.message}`)
+  throw new Error(`Failed to extract text from PDF. The file may be corrupted, password-protected, or scanned without OCR. Please try:\n1. Re-saving the PDF from the original document\n2. Using a different PDF viewer to export/save\n3. Converting to DOCX format\n\nTechnical details: ${lastError.message}`)
 }
 
 /**

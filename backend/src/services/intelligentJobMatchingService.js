@@ -302,11 +302,21 @@ export async function predictBestRole(resume) {
     // ─────────────────────────────────────────────────────────────────────
     
     const primaryRole = finalRoles[0];
-    const primaryRoleData = getRoleByName(primaryRole.name);
     
-    if (!primaryRoleData) {
-      throw new Error(`Role data not found for: ${primaryRole.name}`);
+    // Provide a safe fallback to avoid crashing when a new Watson role lacks metadata
+    if (!primaryRole) {
+      throw new Error('No matching roles found for this resume');
     }
+
+    const primaryRoleData = getRoleByName(primaryRole.name) || {
+      role: primaryRole.name,
+      description: `${primaryRole.name} role`,
+      experienceRange: { min: 0 },
+      salaryRange: {
+        USD: { min: 70000, max: 160000 },
+        INR: { min: 600000, max: 2600000 }
+      }
+    };
     
     return {
       primaryRole: {
@@ -358,7 +368,8 @@ function calculateSkillProficiency(skillName, resume) {
   const searchTokens = synonyms.length > 0 ? synonyms : [skillName.toLowerCase()];
 
   const mentionCount = searchTokens.reduce((count, token) => count + countTermOccurrences(textLower, token), 0);
-  const mentionScore = Math.min(mentionCount * 4, 20);
+  // Keep mention weight modest so it doesn’t dominate when all skills appear once
+  const mentionScore = Math.min(mentionCount * 2, 12);
 
   const synonymsPattern = searchTokens.map(token => escapeRegex(token)).join('|') || escapeRegex(skillName.toLowerCase());
   const expertRegex = new RegExp(`(expert|advanced|senior|lead|architect)[^\n]{0,40}(?:${synonymsPattern})`, 'i');
@@ -367,13 +378,14 @@ function calculateSkillProficiency(skillName, resume) {
 
   let levelScore = 0;
   if (expertRegex.test(textLower)) {
-    levelScore = 18;
+    levelScore = 20;
   } else if (intermediateRegex.test(textLower)) {
     levelScore = 12;
   } else if (beginnerRegex.test(textLower)) {
     levelScore = 6;
   } else {
-    levelScore = Math.min(mentionCount * 2, 10);
+    // Small bump if mentioned a few times without explicit seniority wording
+    levelScore = Math.min(mentionCount * 1, 8);
   }
 
   const projects = Array.isArray(parsedResume.projects) ? parsedResume.projects : [];
@@ -381,7 +393,8 @@ function calculateSkillProficiency(skillName, resume) {
     const projectText = flattenToLowercaseText(project);
     return total + (searchTokens.some(token => projectText.includes(token)) ? 1 : 0);
   }, 0);
-  const projectScore = Math.min(projectSkillCount * 15, 35);
+  // Projects signal depth; give them higher weight to separate strong vs light mentions
+  const projectScore = Math.min(projectSkillCount * 18, 36);
 
   const experienceSections = [
     parsedResume.experience,
@@ -396,7 +409,8 @@ function calculateSkillProficiency(skillName, resume) {
     const experienceText = flattenToLowercaseText(experience);
     return total + (searchTokens.some(token => experienceText.includes(token)) ? 1 : 0);
   }, 0);
-  const experienceScore = Math.min(experienceSkillCount * 7, 21);
+  // Experience entries also carry more weight than raw mentions
+  const experienceScore = Math.min(experienceSkillCount * 14, 42);
 
   let recencyScore = 0;
   const firstMentionIndex = searchTokens
@@ -407,11 +421,11 @@ function calculateSkillProficiency(skillName, resume) {
   if (firstMentionIndex !== Infinity && textLower.length > 0) {
     const positionRatio = firstMentionIndex / textLower.length;
     if (positionRatio <= 0.25) {
-      recencyScore = 10;
+      recencyScore = 8;
     } else if (positionRatio <= 0.5) {
-      recencyScore = 6;
+      recencyScore = 5;
     } else {
-      recencyScore = 3;
+      recencyScore = 2;
     }
   }
 
@@ -494,20 +508,23 @@ export async function analyzeSkills(resume, targetRole) {
       const hasSkill = allCandidateSkills.some(candidateSkill => matchesSkill(candidateSkill, skillName));
 
       if (hasSkill) {
-        const proficiency = calculateSkillProficiency(skillName, resume);
-        const level = proficiency >= 70 ? 'Expert' : proficiency >= 40 ? 'Intermediate' : 'Beginner';
-        
-        // Check if this skill is verified
-        const isVerified = verifiedSkills.some(v => 
-          matchesSkill(v, skillName)
-        );
+        // Use verification exam score if present; otherwise keep null so UI can prompt for quiz
+        const verification = verifiedSkills.find(v => matchesSkill(v.skill, skillName));
+        const verifiedScore = typeof verification?.score === 'number' ? verification.score : null;
+
+        const proficiency = verifiedScore;
+        const level = proficiency >= 70 ? 'Expert' : proficiency >= 40 ? 'Intermediate' : 'Unverified';
 
         skillsHave.push({
           skill: skillName,
           type,
           level,
           proficiency,
-          verified: isVerified, // Add verification status
+          rawProficiency: proficiency,
+          verified: Boolean(verification?.verified && verifiedScore !== null),
+          verificationScore: verifiedScore,
+          verificationBadge: verification?.badge || null,
+          needsVerification: verification ? false : true,
         });
         return;
       }
@@ -541,6 +558,26 @@ export async function analyzeSkills(resume, targetRole) {
 
     core_skills.forEach(skill => evaluateSkillPresence(skill, 'required', 3));
     optional_skills.forEach(skill => evaluateSkillPresence(skill, 'preferred', 2));
+
+    // Rescale proficiency to spread scores across the resume (avoid everyone clustering at ~70)
+    const numericScores = skillsHave
+      .map(s => (typeof s.proficiency === 'number' && !Number.isNaN(s.proficiency)) ? s.proficiency : null)
+      .filter(score => score !== null && score > 0);
+
+    if (numericScores.length > 1) {
+      const minScore = Math.min(...numericScores);
+      const maxScore = Math.max(...numericScores);
+
+      if (maxScore > minScore) {
+        skillsHave.forEach(s => {
+          if (typeof s.proficiency !== 'number' || Number.isNaN(s.proficiency) || s.proficiency === 0) return;
+          const scaled = 30 + ((s.proficiency - minScore) / (maxScore - minScore)) * 65; // 30–95 spread
+          const rounded = Math.round(Math.min(Math.max(scaled, 5), 100));
+          s.proficiency = rounded;
+          s.level = rounded >= 70 ? 'Expert' : rounded >= 40 ? 'Intermediate' : 'Beginner';
+        });
+      }
+    }
 
       const computeSimilarityScore = (skillA, skillB) => {
         const canonicalA = canonicalizeSkillName(skillA);
@@ -927,7 +964,8 @@ export async function findMatchingJobs(resume, options = {}) {
     employmentType = null,
     generateAISummaries = true,
     useEmbeddings = false,
-    preferences = {}
+    preferences = {},
+    excludePlatforms = null
   } = options;
   
   try {
@@ -944,6 +982,11 @@ export async function findMatchingJobs(resume, options = {}) {
     const query = { status: 'active' };
     if (employmentType) query.employmentType = employmentType;
     if (!includeRemote) query['location.isRemote'] = false;
+    
+    // Exclude recruiter-posted jobs (manual/direct) from marketplace matches
+    if (excludePlatforms && Array.isArray(excludePlatforms) && excludePlatforms.length > 0) {
+      query['source.platform'] = { $nin: excludePlatforms };
+    }
     
     const jobs = await Job.find(query).limit(500); // Get larger pool for filtering
     

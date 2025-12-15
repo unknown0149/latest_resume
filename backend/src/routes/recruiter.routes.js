@@ -616,6 +616,14 @@ router.get('/:orgSlug/applications', authenticate, ensureRecruiterDatabase, requ
     if (jobId) query.jobId = jobId;
     if (status) query.status = status;
     
+    console.log('[Applications Query]', {
+      orgId: req.organization._id,
+      orgName: req.organization.name,
+      query,
+      jobIdFilter: jobId,
+      statusFilter: status
+    });
+    
     const applications = await JobApplication.find(query)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
@@ -623,6 +631,20 @@ router.get('/:orgSlug/applications', authenticate, ensureRecruiterDatabase, requ
       .populate('userId', 'name email avatar phone')
       .populate('jobId', 'title company location')
       .populate('resumeId');
+    
+    const total = await JobApplication.countDocuments(query);
+    
+    console.log('[Applications Result]', {
+      totalInDB: total,
+      returnedCount: applications.length,
+      sampleApp: applications.length > 0 ? {
+        id: applications[0]._id,
+        userId: applications[0].userId?._id,
+        jobId: applications[0].jobId?._id,
+        jobTitle: applications[0].jobId?.title,
+        status: applications[0].status
+      } : 'No applications'
+    });
     
     // Apply search filter if provided
     let filteredApplications = applications;
@@ -634,8 +656,6 @@ router.get('/:orgSlug/applications', authenticate, ensureRecruiterDatabase, requ
         app.jobId?.title?.toLowerCase().includes(searchLower)
       );
     }
-    
-    const total = await JobApplication.countDocuments(query);
     
     res.json({
       success: true,

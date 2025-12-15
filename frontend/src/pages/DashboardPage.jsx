@@ -77,7 +77,7 @@ const DashboardPage = () => {
     
     const loadResumeFromAPI = async () => {
       // Skip if already loaded
-      if (parsedResume && skillGaps?.length > 0) {
+      if (parsedResume?.resumeId) {
         return
       }
 
@@ -119,7 +119,10 @@ const DashboardPage = () => {
         const resumeData = response.data
 
         if (resumeData.parsed_resume) {
-          setParsedResume(resumeData.parsed_resume)
+          setParsedResume({
+            resumeId: resumeData.resumeId,
+            ...resumeData.parsed_resume
+          })
         }
 
         if (resumeData.job_analysis) {
@@ -173,37 +176,43 @@ const DashboardPage = () => {
     const fetchMatchedJobs = async () => {
       if (!resumeId) return
       try {
-        // Fetch marketplace jobs (web-scraped)
+        // Fetch marketplace jobs (CSV seed jobs + web-scraped) - excludes recruiter posts
         const marketplaceResponse = await api.get(`/jobs/match/${resumeId}?limit=10&useEmbeddings=true&generateAISummaries=true`)
         const marketplaceJobs = marketplaceResponse.data?.data?.matches || []
         
-        // Fetch recruiter-posted jobs
+        // Fetch ALL active jobs to filter recruiter-posted separately
         const recruiterResponse = await api.get(`/jobs/all`, {
           params: {
-            limit: 20,
+            limit: 50,
             status: 'active'
           }
         })
         
         const allJobs = recruiterResponse.data?.jobs || []
         
-        // Filter for recruiter-posted jobs only
+        // Filter ONLY manual/direct platform jobs (recruiter posts), NOT seed
         const recruiterJobs = allJobs
-          .filter(job => job.source?.platform === 'manual' || job.source?.platform === 'direct')
+          .filter(job => {
+            const platform = job.source?.platform
+            return (platform === 'manual' || platform === 'direct') && platform !== 'seed'
+          })
           .map(job => ({
             job: job,
             jobId: job.jobId,
-            matchScore: 0, // No matching score for now
+            matchScore: 0,
             matchedSkills: [],
             missingSkills: []
           }))
         
-        // Combine both types
-        const combined = [...marketplaceJobs, ...recruiterJobs]
+        console.log(`Dashboard jobs: ${marketplaceJobs.length} marketplace, ${recruiterJobs.length} recruiter-posted`)
         
-        if (combined.length) {
-          setMatchedJobs(combined)
-        }
+        // Combine with source tags for proper bucketing
+        const combined = [
+          ...marketplaceJobs.map(m => ({ ...m, _source: 'marketplace' })),
+          ...recruiterJobs.map(r => ({ ...r, _source: 'recruiter' }))
+        ]
+        
+        setMatchedJobs(combined)
       } catch (error) {
         console.warn('Unable to refresh matched jobs:', error)
       }
@@ -304,13 +313,20 @@ const DashboardPage = () => {
     const recruiter = []
 
     matchedJobs.forEach((entry) => {
-      const job = entry.job || entry
-      // Check if this is a recruiter-posted job (source.platform === 'manual')
-      const isRecruiterJob = job?.source?.platform === 'manual' || job?.source?.platform === 'direct'
-      if (isRecruiterJob) {
+      // Use _source tag if available, otherwise check platform
+      if (entry._source === 'recruiter') {
         recruiter.push(entry)
-      } else {
+      } else if (entry._source === 'marketplace') {
         marketplace.push(entry)
+      } else {
+        // Fallback: check platform
+        const job = entry.job || entry
+        const platform = job?.source?.platform
+        if (platform === 'manual' || platform === 'direct') {
+          recruiter.push(entry)
+        } else {
+          marketplace.push(entry)
+        }
       }
     })
 
@@ -879,14 +895,17 @@ const DashboardPage = () => {
                   </div>
                   <div className="space-y-4">
                     {recruiterMatches.length ? (
-                      recruiterMatches.map((job, index) => (
-                        <JobRoleCard
-                          key={`recruiter-${job.job?._id || job.jobId || index}`}
-                          role={job}
-                          index={index}
-                          onClick={() => handleRoleClick(job)}
-                        />
-                      ))
+                      recruiterMatches.map((job, index) => {
+                        const uniqueKey = job.job?._id || job.job?.jobId || job.jobId || `recruiter-fallback-${index}-${Date.now()}`
+                        return (
+                          <JobRoleCard
+                            key={`recruiter-${uniqueKey}`}
+                            role={job}
+                            index={index}
+                            onClick={() => handleRoleClick(job)}
+                          />
+                        )
+                      })
                     ) : (
                       <div className="text-center rounded-2xl border border-[var(--rg-border)] bg-[var(--rg-bg-muted)] p-8 text-sm text-[var(--rg-text-secondary)]">
                         Recruiter-led openings will appear here once you apply or get invited to internal postings.
@@ -1040,13 +1059,18 @@ const DashboardPage = () => {
         <Modal
           isOpen={showResumeSummary}
           onClose={() => setShowResumeSummary(false)}
-          title="Resume & AI Summary"
+          title="Complete Career Analysis & Resume Summary"
           size="xl"
         >
           <ResumeSummaryView
             resume={parsedResume}
             watsonSummary={watsonSummary}
             skills={normalizedSkillInventory}
+            matchedJobs={matchedJobs}
+            skillGaps={skillGaps}
+            salaryBoost={salaryBoost}
+            roadmap={roadmap}
+            predictedRoles={predictedRoles}
           />
         </Modal>
 

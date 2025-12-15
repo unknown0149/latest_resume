@@ -44,11 +44,6 @@ export const generalLimiter = rateLimit({
   legacyHeaders: false,
   // Skip throttling in local/dev to prevent UX breakage while testing
   skip: () => process.env.NODE_ENV !== 'production',
-  // Prefer user-based keys when authenticated to reduce IP collisions (esp. behind proxies)
-  keyGenerator: (req) => {
-    if (req.user?._id) return `user:${req.user._id.toString()}`
-    return req.ip || 'anonymous'
-  },
 });
 
 // Strict limiter for authentication endpoints (5 attempts per 15 minutes)

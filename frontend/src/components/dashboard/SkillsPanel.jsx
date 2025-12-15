@@ -107,8 +107,10 @@ const SkillsPanel = ({ skillsHave = [], skillsMissing = [], onVerifyClick }) => 
             skillsHave.map((skillObj, idx) => {
               const rawSkill = skillObj.skill ?? skillObj.name ?? skillObj
               const skill = typeof rawSkill === 'string' ? rawSkill : rawSkill?.name || rawSkill?.skill || `Skill ${idx + 1}`
-              const proficiency = skillObj.proficiency || 50
+              const hasScore = typeof skillObj.proficiency === 'number' && !Number.isNaN(skillObj.proficiency)
+              const proficiency = hasScore ? Math.max(0, Math.round(skillObj.proficiency)) : null
               const verified = skillObj.verified || false
+              const needsVerification = skillObj.needsVerification || !hasScore
               const badgeLevel = skillObj.badge?.level
               const badgeLabel = skillObj.badge?.label
 
@@ -134,27 +136,33 @@ const SkillsPanel = ({ skillsHave = [], skillsMissing = [], onVerifyClick }) => 
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-[var(--rg-text-secondary)]">{skillObj.level || getProficiencyLabel(proficiency)}</p>
+                      <p className="text-sm text-[var(--rg-text-secondary)]">{skillObj.level || (needsVerification ? 'Unverified' : getProficiencyLabel(proficiency || 0))}</p>
                     </div>
                     <Button size="sm" variant={verified ? 'outline' : 'primary'} onClick={() => onVerifyClick?.(skill)}>
                       <Award className="w-4 h-4 mr-1" />
-                      {verified ? 'Re-verify' : 'Verify'}
+                      {needsVerification ? 'Take quiz' : verified ? 'Re-verify' : 'Verify'}
                     </Button>
                   </div>
-                  <div className="space-y-2">
+                  {hasScore ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm text-[var(--rg-text-secondary)]">
+                        <span>Proficiency</span>
+                        <span className="font-semibold text-[var(--rg-text-primary)]">{proficiency}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-[var(--rg-bg-muted)]">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${proficiency}%` }}
+                          transition={{ duration: 0.7, delay: idx * 0.05 }}
+                          className="h-full rounded-full bg-[var(--rg-accent)]"
+                        />
+                      </div>
+                    </div>
+                  ) : (
                     <div className="flex items-center justify-between text-sm text-[var(--rg-text-secondary)]">
-                      <span>Proficiency</span>
-                      <span className="font-semibold text-[var(--rg-text-primary)]">{proficiency}%</span>
+                      <span>Take the quiz to know your proficiency</span>
                     </div>
-                    <div className="h-2 rounded-full bg-[var(--rg-bg-muted)]">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${proficiency}%` }}
-                        transition={{ duration: 0.7, delay: idx * 0.05 }}
-                        className="h-full rounded-full bg-[var(--rg-accent)]"
-                      />
-                    </div>
-                  </div>
+                  )}
                 </div>
               )
             })

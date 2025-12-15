@@ -118,6 +118,15 @@ router.post('/apply/:jobId', authenticate, checkFeatureAccess('jobApplications')
       : 50;
 
     // Create application
+    console.log('[Creating Application]', {
+      jobId,
+      jobTitle: job.title,
+      userId,
+      jobOrganizationId: job.organizationId,
+      jobPostedBy: job.postedBy,
+      hasOrgId: !!job.organizationId
+    });
+    
     const application = new JobApplication({
       jobId,
       userId,
@@ -162,6 +171,12 @@ router.post('/apply/:jobId', authenticate, checkFeatureAccess('jobApplications')
     });
 
     await application.save();
+    
+    console.log('[Application Created]', {
+      applicationId: application._id,
+      organizationId: application.organizationId,
+      status: application.status
+    });
 
     // Track usage
     try {

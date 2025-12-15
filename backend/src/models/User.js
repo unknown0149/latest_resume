@@ -102,8 +102,7 @@ const userSchema = new mongoose.Schema({
   timestamps: true // Adds createdAt and updatedAt
 });
 
-// Indexes for performance
-userSchema.index({ email: 1 });
+// Indexes for performance (email index already created by unique: true)
 userSchema.index({ createdAt: -1 });
 userSchema.index({ lastLoginAt: -1 });
 
